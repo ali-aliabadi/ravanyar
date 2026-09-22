@@ -1,0 +1,6 @@
+# These paths are the project's guardrails. Agents propose changes here; a human approves.
+/AGENTS.md        @ali-aliabadi
+/.github/         @ali-aliabadi
+/Makefile         @ali-aliabadi
+/scripts/         @ali-aliabadi
+/specs/           @ali-aliabadi

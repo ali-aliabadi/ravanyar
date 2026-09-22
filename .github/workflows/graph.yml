@@ -1,0 +1,25 @@
+name: graph
+
+# The code graph agents query. Rebuilt weekly and on every push to main, published as an
+# artifact rather than committed - a generated index in git is churn in every diff.
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Pinned: an upstream installer change must be reviewed, not inherited silently.
+      - run: curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/v1.6.0/install.sh | sh
+      - run: $HOME/.local/bin/codegraph index . --quiet || $HOME/.local/bin/codegraph index .
+      - run: $HOME/.local/bin/codegraph status .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codegraph-index
+          path: .codegraph/
+          retention-days: 30

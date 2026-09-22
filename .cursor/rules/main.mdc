@@ -1,0 +1,7 @@
+---
+description: Project rules
+alwaysApply: true
+---
+
+All rules for this repository live in `AGENTS.md` at the repository root. Read it before your
+first edit. This file deliberately contains no rules of its own, so the two cannot disagree.

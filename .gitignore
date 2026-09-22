@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# agent tooling installed per-developer, not project code
+.claude/
+.agents/
+skills-lock.json
+.codegraph/
