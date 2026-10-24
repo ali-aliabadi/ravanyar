@@ -8,6 +8,30 @@ Read this before your first edit in a session.
 
 ---
 
+## 0. Agents: check ponytail before your first edit
+
+Every AI agent working here runs with [ponytail](https://github.com/DietrichGebert/ponytail)
+loaded. It is how §1.9, smallest thing that works, gets applied edit by edit.
+
+At the start of every session, before any edit:
+
+- **Loaded** - any one of these is in your context: the `PONYTAIL MODE ACTIVE` banner (Claude
+  Code, Codex, Cursor hooks), a `ponytail` skill such as `ponytail:ponytail`, or a rule titled
+  "Ponytail, lazy senior dev mode" (Cursor and other rule-file installs). Follow it and carry
+  on.
+- **Not loaded** - stop. Tell the developer you are working for: *"ponytail is not loaded in
+  this session, and this project expects every agent to use it. Install it (commands in
+  AGENTS.md §0), or confirm you want to continue without it."* Then wait. Continue only on an
+  explicit yes, and write `ponytail: not used, confirmed by the developer` in the PR's Author
+  section.
+
+| Agent | Install, then start a new session |
+|---|---|
+| Claude Code | `/plugin marketplace add DietrichGebert/ponytail`, then in a separate prompt `/plugin install ponytail@ponytail` |
+| Codex | `codex plugin marketplace add DietrichGebert/ponytail` and `codex plugin add ponytail@ponytail`, then trust its hooks in `/hooks` |
+| Cursor | `git clone https://github.com/DietrichGebert/ponytail` and `node ponytail/scripts/cursor-hooks.js install` |
+| Any other | The matching rules file from the [ponytail install guide](https://github.com/DietrichGebert/ponytail#install) |
+
 ## 1. Non-negotiables
 
 These hold for every change, by every author, human or agent. Changing one is an amendment:
