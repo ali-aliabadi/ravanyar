@@ -22,4 +22,5 @@ SPEC-
 
 ## Author
 
-<!-- Agent-authored? Name the tool and model, e.g. `Agent: claude-opus-5`. -->
+<!-- Agent-authored? Name the tool and model, and whether ponytail was loaded (AGENTS.md §0).
+     e.g. `Agent: claude-opus-5.5, ponytail: loaded` -->
