@@ -16,19 +16,37 @@ other PR may edit this section.
 
 1. **Every spec serves a stated goal.** `docs/goals.md` holds them in priority order; a
    spec names its goal in front matter. Work that serves no goal there does not start.
-1. **Code is authorised by a spec.** Anything under `src/` requires an approved spec that is
+2. **Code is authorised by a spec.** Anything under `src/` requires an approved spec that is
    already merged on `main`. See §2.
-2. **The gates are absolute.** Lint, types, tests, file length, and the spec gate all pass, or
-   the PR does not merge. There is no warn-only tier and no bypass.
-3. **Student data is minors' data.** Never log it, never put raw personal data in an LLM
-   prompt, never commit a fixture containing a real person. A spec that handles student data
-   states explicitly what is stored, for how long, and who can read it.
-4. **No dependency without a reason in writing.** New package means an ADR in `docs/adr/`
+3. **The gates are absolute.** Every gate in §3 passes, or the PR does not merge. There is no
+   warn-only tier and no bypass.
+4. **Clinical data is the most sensitive thing we hold.** Session audio and transcripts,
+   notes, records, journal entries, assessment results, and assistant conversations are
+   clinical data. Never log it. Never send it to an LLM, an advertiser, an employer, or any
+   other third party without the person's consent to that specific use. Never commit a fixture
+   containing a real person. A child's data also needs a guardian's consent. A spec that
+   stores anything about a person fills in its Data section and passes the privacy review in
+   `docs/privacy-review.md`.
+5. **Assume the database leaks.** Design every table as if a full dump were published tomorrow:
+   it must reveal nothing about anyone. Clinical data and everything that identifies a person
+   (name, phone, email, national ID, address) is encrypted by the application before it
+   reaches Postgres, under keys that never live in the database, its backups, or the repo.
+   Lookups on an encrypted field use a keyed hash (blind index), never plaintext. Disk or
+   database-level encryption does not count: anyone who can query the database reads straight
+   through it. The design is [ADR 0004](docs/adr/0004-assume-the-database-leaks.md).
+6. **Consent is per use.** Accepting the terms is not consent to record a session, share a
+   record, or refer a client. Each such use asks for its own consent, stores the version agreed
+   and when, and can be withdrawn.
+7. **AI drafts, a professional decides.** AI output is never stored as a clinical fact until a
+   professional confirms it. An AI that talks to users never presents itself as a clinician or
+   diagnoses, and does not ship without the crisis protocol: it detects risk of harm to self or
+   others and hands over to a human.
+8. **No dependency without a reason in writing.** New package means an ADR in `docs/adr/`
    naming what it does that the standard library and Django cannot.
-5. **Smallest thing that works.** No interface with one implementation, no config for a value
+9. **Smallest thing that works.** No interface with one implementation, no config for a value
    that never changes, no abstraction for a second case that does not exist yet.
-6. **Agents do not edit their own guardrails.** `AGENTS.md`, `.github/`, `Makefile`, and
-   `scripts/` are CODEOWNER territory. Propose changes, never self-approve them.
+10. **Agents do not edit their own guardrails.** The paths in `.github/CODEOWNERS` are
+   CODEOWNER territory. Propose changes, never self-approve them.
 
 ## 2. The workflow: a spec merges before its code
 
@@ -86,6 +104,7 @@ src/core/tests/     Tests live beside the code they cover.
 specs/              One directory per spec. The authorisation record.
 docs/goals.md       What the project is for, in priority order. Specs trace back to it.
 docs/adr/           Why a technical decision was made. Specs say what, ADRs say why.
+docs/privacy-review.md  The checklist every change touching personal data passes.
 scripts/            The CI gates, as runnable Python. No logic hides in YAML.
 ```
 
@@ -121,4 +140,6 @@ Postgres itself. Never point a test at a database you care about.
 3. Write the test first when the change has behaviour worth asserting.
 4. Keep the diff to what the spec asks for. Found an unrelated problem? Say so in the PR body;
    do not fix it in the same PR.
-5. Run `make ci`. Open the PR. Report honestly what passed and what you skipped.
+5. Touching anything about a person - a model, migration, endpoint, log line, LLM call? Run
+   [docs/privacy-review.md](docs/privacy-review.md) and put the result in the PR body.
+6. Run `make ci`. Open the PR. Report honestly what passed and what you skipped.

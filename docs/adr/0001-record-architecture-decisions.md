@@ -12,7 +12,7 @@ feature that prompted them, and the next agent needs the reasoning, not the outc
 ## Decision
 
 Technical decisions are recorded as short ADRs in `docs/adr/`, numbered sequentially. An ADR
-is required for a new dependency (AGENTS.md §1.4) and for anything that binds the codebase
+is required for a new dependency (AGENTS.md §1.8) and for anything that binds the codebase
 long-term. An ADR is never edited once accepted; it is superseded by a later one.
 
 ## Consequences
