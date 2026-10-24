@@ -20,11 +20,15 @@ def limit_for(path: Path) -> int | None:
 
 
 def main() -> int:
-    tracked = subprocess.run(
-        ["git", "ls-files", "*.py"], capture_output=True, text=True, check=True
+    # --others: a new file fails here before its first `git add`, not only once it is committed.
+    files = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "*.py"],
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.split()
     violations = []
-    for name in tracked:
+    for name in files:
         path = Path(name)
         cap = limit_for(path)
         if cap is None or not path.exists():
@@ -34,9 +38,9 @@ def main() -> int:
             violations.append(f"{name}: {lines} lines (max {cap})")
     if violations:
         print("Files over the line limit. Split them into smaller modules:\n")
-        print("\n".join(f"  {v}" for v in violations))
+        print("\n".join(f"- {v}" for v in violations))
         return 1
-    print(f"file length ok ({len(tracked)} files, max {DEFAULT_MAX}/{TEST_MAX} for tests)")
+    print(f"file length ok ({len(files)} files, max {DEFAULT_MAX}/{TEST_MAX} for tests)")
     return 0
 
 

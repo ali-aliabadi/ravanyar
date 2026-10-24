@@ -9,16 +9,25 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   index:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # The installer defaults to the latest release; pinning the script alone pins nothing.
+      CODEGRAPH_VERSION: v1.6.0
     steps:
-      - uses: actions/checkout@v4
-      # Pinned: an upstream installer change must be reviewed, not inherited silently.
-      - run: curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/v1.6.0/install.sh | sh
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Pinned by commit: an upstream installer change must be reviewed, not inherited silently.
+      - run: curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/dfccdf62547fcd76d343344d823a0e1998d3a89f/install.sh | sh
       - run: $HOME/.local/bin/codegraph index . --quiet || $HOME/.local/bin/codegraph index .
       - run: $HOME/.local/bin/codegraph status .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: codegraph-index
           path: .codegraph/

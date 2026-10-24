@@ -66,6 +66,11 @@ Run `make ci` before you open any PR. It runs exactly what GitHub runs.
 | Unit tests | `make test-unit` | Any test marked `unit` fails |
 | Integration tests | `make test-integration` | Any test marked `integration` fails |
 | Spec gate | `make spec` | `src/` changed without a merged, approved spec |
+| Security | `make sec` | A locked dependency has a known vulnerability, or git history holds a secret |
+| Workflows | `make workflows` | A workflow is malformed, or has an unpinned action, excess permissions, or injection |
+
+`print` is banned in application code (ruff `T20`); scripts are CLIs and may print. Fix a
+security finding, do not suppress it - see [ADR 0003](docs/adr/0003-ci-security-tools.md).
 
 **The file-length limit is a design rule, not a style rule.** A file over 300 lines is one an
 agent reads in fragments and edits with half the context. Split by responsibility. Generated
