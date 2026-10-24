@@ -9,12 +9,11 @@ gh api --method PUT "repos/$REPO/branches/main/protection" \
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["lint", "unit", "integration", "spec-gate"]
+    "contexts": ["lint", "types", "unit", "integration", "spec-gate", "security", "workflows"]
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {
-    "required_approving_review_count": 1,
-    "dismiss_stale_reviews": true
+    "required_approving_review_count": 0
   },
   "restrictions": null,
   "required_linear_history": true,
@@ -27,4 +26,4 @@ gh api --method PATCH "repos/$REPO" \
   -F allow_squash_merge=true -F allow_merge_commit=false -F allow_rebase_merge=false \
   -F delete_branch_on_merge=true
 
-echo "main is protected: squash-only, linear history, 4 required checks, 1 approval."
+echo "main is protected: squash-only, linear history, 7 required checks, merge through a PR (no approval needed: solo maintainer)."

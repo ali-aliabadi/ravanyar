@@ -26,13 +26,14 @@ src = ["src"]
 extend-exclude = ["*/migrations/*"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "DJ", "S", "SIM", "RUF"]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "DJ", "S", "SIM", "RUF", "T20"]
 ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/config/settings/*" = ["F403", "F405"]
 "**/tests/*" = ["S105", "S106"]
-"scripts/*" = ["S603", "S607"]
+# Scripts are CLIs: print is their output. Application code logs instead (T20).
+"scripts/*" = ["S603", "S607", "T20"]
 
 [tool.mypy]
 strict = true

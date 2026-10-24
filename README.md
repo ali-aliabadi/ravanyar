@@ -1,11 +1,13 @@
 # core
 
+[![ci](https://github.com/ali-aliabadi/ravanyar/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ali-aliabadi/ravanyar/actions/workflows/ci.yml)
+
 Backend for a personalised education platform: a study helper for students, built for schools,
 with room for alternative learning paths.
 
 What the project is for is written down in [docs/goals.md](./docs/goals.md), in priority
 order. The product direction is deliberately undecided. What is decided is how the work happens -
-every change is authorised by a merged spec, and five CI gates hold the line. Read
+every change is authorised by a merged spec, and the CI gates hold the line. Read
 [AGENTS.md](./AGENTS.md); it is the whole rulebook, for people and for coding agents alike.
 
 ## Requirements
