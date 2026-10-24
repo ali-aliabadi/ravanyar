@@ -83,8 +83,8 @@ Run `make ci` before you open any PR. It runs exactly what GitHub runs.
 | Types | `make typecheck` | `mypy --strict` finds an error |
 | Unit tests | `make test-unit` | Any test marked `unit` fails |
 | Integration tests | `make test-integration` | Any test marked `integration` fails |
-| Spec gate | `make spec` | `src/` changed without a merged, approved spec |
-| Security | `make sec` | A locked dependency has a known vulnerability, or git history holds a secret |
+| Spec gate | `make spec` | A spec's front matter or Data section is incomplete, or `src/` changed without a merged, approved spec |
+| Security | `make sec` | A locked dependency has a known vulnerability, or git history holds a secret or personal data |
 | Workflows | `make workflows` | A workflow is malformed, or has an unpinned action, excess permissions, or injection |
 
 `print` is banned in application code (ruff `T20`); scripts are CLIs and may print. Fix a

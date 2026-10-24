@@ -1,0 +1,32 @@
+# Secrets: gitleaks' built-in rules. Personal data: the rules below - fixtures and docs use
+# invented people only (AGENTS.md §1.4). Run by `make sec` over the whole git history.
+# Bare 10-digit national IDs are not matched: too many false positives. The privacy review
+# covers them.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "iran-mobile-number"
+description = "Iranian mobile number"
+regex = '''(?:\+98|\b0098|\b0)9\d{9}\b'''
+keywords = ["09", "+98", "0098"]
+
+[[rules]]
+id = "iran-iban"
+description = "Iranian IBAN (Sheba)"
+regex = '''\bIR\d{24}\b'''
+keywords = ["ir"]
+
+[[rules]]
+id = "email-address"
+description = "Real email address - use example.com in fixtures"
+regex = '''\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b'''
+keywords = ["@"]
+
+[[rules.allowlists]]
+regexes = [
+  '''@example\.(?:com|org|net)$''',
+  '''\.(?:test|example|invalid|localhost)$''',
+  '''^noreply@''',
+]

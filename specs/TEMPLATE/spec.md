@@ -3,6 +3,7 @@ id: SPEC-NNNN
 title: <short imperative title>
 status: draft   # draft | approved | implemented | superseded
 goal: 1         # which goal in docs/goals.md this serves
+data: none      # none | identifying | clinical - see AGENTS.md §1.4-§1.5
 ---
 
 ## Problem
@@ -29,12 +30,15 @@ Each line becomes a test. Name the test in `tasks.md`.
 
 ## Data
 
-Delete this section only if the change stores nothing about a person.
+Required unless `data: none`; `make spec` fails while any field below is empty or still holds
+a `<placeholder>`. Run [docs/privacy-review.md](../../docs/privacy-review.md) on the design.
 
-- **Stored:** which fields, about whom.
-- **Retention:** how long, deleted how.
-- **Access:** who can read it.
-- **Sent to an LLM:** exactly what, or "nothing".
+- **Stored:** <which fields, about whom, identifying or clinical>
+- **Encrypted:** <which fields under the person's data key; which have a blind index (ADR 0004)>
+- **Consent:** <which consent covers each use, which version; what happens when withdrawn>
+- **Retention:** <how long; deleted by shredding the data key, or how>
+- **Access:** <who can read it; which reads write to the access log>
+- **Sent outside:** <exactly what goes to an LLM or any third party, or "nothing">
 
 ## Open questions
 

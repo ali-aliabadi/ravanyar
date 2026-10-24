@@ -27,13 +27,14 @@ format: ## Rewrite code to satisfy the formatter and autofixable lints
 	uv run ruff check --fix src scripts
 	uv run ruff format src scripts
 
-typecheck: ## mypy --strict over the application
-	uv run mypy src
+typecheck: ## mypy --strict over the application and the gate scripts
+	uv run mypy src scripts
 
 lines: ## Fail on any file longer than the agent-readable limit
 	uv run python scripts/check_file_length.py
 
-spec: ## Fail when application code changes without a merged, approved spec
+spec: ## Spec format and Data section, then: src/ changed only under a merged, approved spec
+	uv run python scripts/check_spec_format.py
 	uv run python scripts/check_spec.py
 
 sec: ## Known vulnerabilities in locked dependencies + secrets anywhere in git history
