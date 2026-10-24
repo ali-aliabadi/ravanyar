@@ -25,7 +25,8 @@ jobs:
           persist-credentials: false
       # Pinned by commit: an upstream installer change must be reviewed, not inherited silently.
       - run: curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/dfccdf62547fcd76d343344d823a0e1998d3a89f/install.sh | sh
-      - run: '"$HOME/.local/bin/codegraph" index . --quiet || "$HOME/.local/bin/codegraph" index .'
+      # .codegraph/ is gitignored, so every run starts uninitialised: init builds the index.
+      - run: '"$HOME/.local/bin/codegraph" init --yes .'
       - run: '"$HOME/.local/bin/codegraph" status .'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
