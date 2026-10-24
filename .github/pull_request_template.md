@@ -14,7 +14,11 @@ SPEC-
 - [ ] `make ci` passes locally
 - [ ] The diff contains only what the spec authorises
 - [ ] Acceptance criteria in the spec map to tests that now exist
-- [ ] No personal data in logs, fixtures, or LLM prompts
+- [ ] Touches anything about a person? [docs/privacy-review.md](../docs/privacy-review.md) run, result below
+
+## Privacy review
+
+<!-- Findings and how each was fixed, or "Touches no personal data." -->
 
 ## Author
 

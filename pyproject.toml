@@ -50,8 +50,9 @@ django_settings_module = "config.settings.test"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
-pythonpath = ["src"]
-testpaths = ["src"]
+# scripts/: the gates are code too, and are tested like code.
+pythonpath = ["src", "scripts"]
+testpaths = ["src", "scripts"]
 addopts = "--strict-markers -q"
 markers = [
     "unit: no database, no containers, milliseconds",

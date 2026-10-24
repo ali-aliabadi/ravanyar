@@ -4,3 +4,8 @@
 /Makefile         @ali-aliabadi
 /scripts/         @ali-aliabadi
 /specs/           @ali-aliabadi
+/docs/goals.md    @ali-aliabadi
+/docs/adr/        @ali-aliabadi
+/docs/privacy-review.md @ali-aliabadi
+/pyproject.toml   @ali-aliabadi
+/.gitleaks.toml   @ali-aliabadi
