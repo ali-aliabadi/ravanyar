@@ -1,5 +1,7 @@
 """Test settings. Integration tests override DATABASES with a testcontainers Postgres."""
 
+import os
+
 from .base import *
 
 DEBUG = False
@@ -17,4 +19,8 @@ DATABASES = {
         "PORT": "5432",
     }
 }
+# Fresh per run: nothing key-shaped in the repo, and no test depends on a fixed key.
+MASTER_KEY = os.urandom(32)
+BLIND_INDEX_KEY = os.urandom(32)
+
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

@@ -44,3 +44,13 @@ TIME_ZONE = "UTC"
 USE_I18N = False
 USE_TZ = True
 STATIC_URL = "static/"
+
+# SPEC-0001. Accounts hold no plaintext identifier, so Django's User cannot be used (ADR 0004).
+AUTH_USER_MODEL = "core.Account"
+
+# The consent texts each version names. Publishing a new version means every account
+# accepts it again before using the API. Draft versions refuse to start in production.
+CONSENT_VERSIONS = {"terms": "terms-draft-0", "privacy": "privacy-draft-0"}
+
+KAVENEGAR_API_KEY = os.environ.get("KAVENEGAR_API_KEY", "")
+KAVENEGAR_TEMPLATE = os.environ.get("KAVENEGAR_TEMPLATE", "ravanyar-code")
