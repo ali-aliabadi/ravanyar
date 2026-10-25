@@ -1,7 +1,7 @@
 ---
 id: SPEC-0001
 title: Accounts, per-person encryption, consent ledger, and central access control
-status: draft   # draft | approved | implemented | superseded
+status: approved   # draft | approved | implemented | superseded
 goal: 1         # which goal in docs/goals.md this serves
 data: identifying  # none | identifying | clinical - see AGENTS.md §1.4-§1.5
 ---
