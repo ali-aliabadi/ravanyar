@@ -11,8 +11,15 @@ import re
 import subprocess
 import sys
 
+from check_spec_format import front_matter
+
 SPEC_ID = re.compile(r"SPEC-\d{4}")
 GUARDED = ("src/",)
+
+
+def is_approved(spec_md: str) -> bool:
+    """Read status the way the format gate does, so the template's trailing comment is allowed."""
+    return front_matter(spec_md).get("status") == "approved"
 
 
 def git(*args: str) -> str:
@@ -46,7 +53,7 @@ def main() -> int:
         return 1
 
     body = git("show", f"{base}:{dirs[0]}/spec.md")
-    if not re.search(r"^status:\s*approved\s*$", body, re.MULTILINE):
+    if not is_approved(body):
         print(f"{spec_id} exists on {base} but is not `status: approved`.")
         return 1
 
