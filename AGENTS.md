@@ -40,7 +40,7 @@ other PR may edit this section.
 
 1. **Every spec serves a stated goal.** `docs/goals.md` holds them in priority order; a
    spec names its goal in front matter. Work that serves no goal there does not start.
-2. **Code is authorised by a spec.** Anything under `src/` requires an approved spec that is
+2. **Code is authorised by a spec.** Anything under `backend/src/` or `frontend/src/` requires an approved spec that is
    already merged on `main`. See §2.
 3. **The gates are absolute.** Every gate in §3 passes, or the PR does not merge. There is no
    warn-only tier and no bypass.
@@ -87,7 +87,7 @@ rejects the PR otherwise.
 An implementation PR cannot carry its own spec. That is the point: the authorisation exists,
 reviewed by a human, before any code is written against it.
 
-**Waived for:** changes that touch no file under `src/`. Documentation, CI, tooling, and
+**Waived for:** changes that touch no file under `backend/src/` or `frontend/src/`. Documentation, CI, tooling, and
 dependency bumps merge as a single ordinary PR.
 
 **Spec lifecycle:** `draft` -> `approved` -> `implemented` -> `superseded`. The field lives in
@@ -107,7 +107,7 @@ Run `make ci` before you open any PR. It runs exactly what GitHub runs.
 | Types | `make typecheck` | `mypy --strict` finds an error |
 | Unit tests | `make test-unit` | Any test marked `unit` fails |
 | Integration tests | `make test-integration` | Any test marked `integration` fails |
-| Spec gate | `make spec` | A spec's front matter or Data section is incomplete, or `src/` changed without a merged, approved spec |
+| Spec gate | `make spec` | A spec's front matter or Data section is incomplete, or application code changed without a merged, approved spec |
 | Security | `make sec` | A locked dependency has a known vulnerability, or git history holds a secret or personal data |
 | Workflows | `make workflows` | A workflow is malformed, or has an unpinned action, excess permissions, or injection |
 
@@ -121,15 +121,16 @@ migrations are exempt.
 ## 4. Layout and conventions
 
 ```
-src/config/         Django project: settings, urls, asgi. Not application code.
-src/config/settings/  base -> dev | test | prod. Secrets come from the environment.
-src/core/           The application package.
-src/core/tests/     Tests live beside the code they cover.
-specs/              One directory per spec. The authorisation record.
-docs/goals.md       What the project is for, in priority order. Specs trace back to it.
-docs/adr/           Why a technical decision was made. Specs say what, ADRs say why.
-docs/privacy-review.md  The checklist every change touching personal data passes.
-scripts/            The CI gates, as runnable Python. No logic hides in YAML.
+backend/src/config/         Django project: settings, urls, asgi. Not application code.
+backend/src/config/settings/  base -> dev | test | prod. Secrets come from the environment.
+backend/src/core/           The application package.
+backend/src/core/tests/     Tests live beside the code they cover.
+frontend/                   Frontend client application.
+specs/                      One directory per spec. The authorisation record.
+docs/goals.md               What the project is for, in priority order. Specs trace back to it.
+docs/adr/                   Why a technical decision was made. Specs say what, ADRs say why.
+docs/privacy-review.md      The checklist every change touching personal data passes.
+scripts/                    The CI gates, as runnable Python. No logic hides in YAML.
 ```
 
 - **Views are thin.** An endpoint validates input, calls one function, returns a schema.
@@ -160,7 +161,7 @@ Postgres itself. Never point a test at a database you care about.
 ## 6. Writing a change
 
 1. Read the spec you are implementing, in full, before editing.
-2. Read `src/core/api.py` - it is the reference for how an endpoint is shaped here.
+2. Read `backend/src/core/api.py` - it is the reference for how an endpoint is shaped here.
 3. Write the test first when the change has behaviour worth asserting.
 4. Keep the diff to what the spec asks for. Found an unrelated problem? Say so in the PR body;
    do not fix it in the same PR.

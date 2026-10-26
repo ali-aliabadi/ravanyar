@@ -31,7 +31,7 @@ make format # fix what is auto-fixable
 make help   # all targets
 ```
 
-A change to `src/` needs an approved spec merged on `main` first. Copy `specs/TEMPLATE/` to
+A change to application code (`backend/src/` or `frontend/src/`) needs an approved spec merged on `main` first. Copy `specs/TEMPLATE/` to
 `specs/SPEC-0001-your-slug/`, open that as its own PR, then implement it in a second PR whose
 branch name carries the spec id. The full rules are in [AGENTS.md](./AGENTS.md).
 
@@ -39,8 +39,10 @@ branch name carries the spec id. The full rules are in [AGENTS.md](./AGENTS.md).
 
 | Path | What lives there |
 |---|---|
-| `src/config/` | Django project: settings, urls, ASGI entry point |
-| `src/core/` | The application |
+| `backend/` | Backend application code, settings, and dependencies |
+| `backend/src/config/` | Django project: settings, urls, ASGI entry point |
+| `backend/src/core/` | The application |
+| `frontend/` | Frontend client application |
 | `specs/` | One directory per spec - the authorisation record |
 | `docs/adr/` | Why a technical decision was made |
 | `docs/goals.md` | What the project is for, in priority order |
