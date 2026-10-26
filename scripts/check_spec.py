@@ -14,7 +14,7 @@ import sys
 from check_spec_format import front_matter
 
 SPEC_ID = re.compile(r"SPEC-\d{4}")
-GUARDED = ("src/",)
+GUARDED = ("backend/src/", "frontend/src/")
 
 
 def is_approved(spec_md: str) -> bool:
@@ -30,8 +30,21 @@ def main() -> int:
     base = os.environ.get("BASE_REF", "origin/main")
     head = os.environ.get("HEAD_REF", "HEAD")
 
-    changed = git("diff", "--name-only", f"{base}...{head}").splitlines()
-    guarded = [f for f in changed if f.startswith(GUARDED)]
+    # -M detects renames. Pure moves (R100) are repository refactoring,
+    # not application code changes.
+    diff_lines = git("diff", "-M", "--name-status", f"{base}...{head}").splitlines()
+    guarded = []
+    for line in diff_lines:
+        if not line:
+            continue
+        parts = line.split("\t")
+        status = parts[0]
+        if status == "R100":
+            continue
+        path = parts[-1]
+        if path.startswith(GUARDED):
+            guarded.append(path)
+
     if not guarded:
         print("no application code changed - spec gate waived")
         return 0
@@ -40,7 +53,7 @@ def main() -> int:
     context = f"{os.environ.get('PR_TITLE', '')} {branch}"
     found = SPEC_ID.search(context)
     if not found:
-        print(f"This PR changes {len(guarded)} file(s) under src/ but names no spec.")
+        print(f"This PR changes {len(guarded)} file(s) under guarded paths but names no spec.")
         print("Put a SPEC-NNNN id in the branch name or PR title,")
         print("for example: feat/SPEC-0001-tutor-replies")
         return 1
