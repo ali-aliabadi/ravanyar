@@ -9,8 +9,8 @@ cp .env.example .env   # fill every empty value
 docker compose up -d --build
 ```
 
-Then add `nginx-margin.conf` to the margin server block, create the htpasswd file it names,
-and `nginx -t && systemctl reload nginx`.
+Then follow `nginx-margin.conf` (a rate-limit zone in conf.d, locations in the margin server
+block) and `nginx -t && systemctl reload nginx`.
 
 Update: `git pull && docker compose up -d --build`. Migrations run first, as the owner role.
 
