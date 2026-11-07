@@ -40,8 +40,8 @@ other PR may edit this section.
 
 **Pre-launch relaxation (until the first real user signs up).** Rules 2 and 3 are relaxed so
 the product can be built quickly: a spec is still written, but code may land before or with
-it, and CI runs lint, types, tests, security and workflows only (the spec gate and the
-file-length gate are off). Rules 4 to 7 are not relaxed. Real people's data is never on a
+it, and CI runs lint, types, tests, security and workflows only (the spec gate checks
+spec format only, and the file-length gate is off). Rules 4 to 7 are not relaxed. Real people's data is never on a
 pre-launch deployment. Turning the relaxation off is an amendment that deletes this paragraph
 and puts `spec` and `lines` back into `make ci` and CI.
 
