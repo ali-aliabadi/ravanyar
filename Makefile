@@ -55,7 +55,8 @@ test-integration: ## Real Postgres via testcontainers - needs a running Docker d
 
 test: test-unit test-integration ## Every test
 
-ci: lint lines typecheck test spec sec workflows ## Everything CI enforces, in CI's order
+# Pre-launch: `lines` and `spec` are off (AGENTS.md §1). They still run by hand.
+ci: lint typecheck test sec workflows ## Everything CI enforces, in CI's order
 
 run: ## Serve the API on http://localhost:8000/api/docs
 	uv run --project backend uvicorn config.asgi:application --reload --app-dir backend/src

@@ -62,3 +62,8 @@ def test_bad_or_missing_key_refuses_start(
 def test_prod_refuses_draft_consent(prod_env: pytest.MonkeyPatch) -> None:
     with pytest.raises(ImproperlyConfigured, match="consent"):
         load_prod()
+
+
+def test_prelaunch_allows_draft_consent(prod_env: pytest.MonkeyPatch) -> None:
+    prod_env.setenv("RAVANYAR_PRELAUNCH", "1")
+    assert load_prod().PRELAUNCH

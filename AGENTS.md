@@ -38,9 +38,16 @@ These hold for every change, by every author, human or agent. Changing one is an
 a PR that edits this section, approved by a CODEOWNER, with the reason in the PR body. No
 other PR may edit this section.
 
+**Pre-launch relaxation (until the first real user signs up).** Rules 2 and 3 are relaxed so
+the product can be built quickly: a spec is still written, but code may land before or with
+it, and CI runs lint, types, tests, security and workflows only (the spec gate and the
+file-length gate are off). Rules 4 to 7 are not relaxed. Real people's data is never on a
+pre-launch deployment. Turning the relaxation off is an amendment that deletes this paragraph
+and puts `spec` and `lines` back into `make ci` and CI.
+
 1. **Every spec serves a stated goal.** `docs/goals.md` holds them in priority order; a
    spec names its goal in front matter. Work that serves no goal there does not start.
-2. **Code is authorised by a spec.** Anything under `backend/src/` or `frontend/src/` requires an approved spec that is
+2. **Code is authorised by a spec.** Anything under `backend/src/` requires an approved spec that is
    already merged on `main`. See §2.
 3. **The gates are absolute.** Every gate in §3 passes, or the PR does not merge. There is no
    warn-only tier and no bypass.
@@ -87,7 +94,7 @@ rejects the PR otherwise.
 An implementation PR cannot carry its own spec. That is the point: the authorisation exists,
 reviewed by a human, before any code is written against it.
 
-**Waived for:** changes that touch no file under `backend/src/` or `frontend/src/`. Documentation, CI, tooling, and
+**Waived for:** changes that touch no file under `backend/src/`. Documentation, CI, tooling, and
 dependency bumps merge as a single ordinary PR.
 
 **Spec lifecycle:** `draft` -> `approved` -> `implemented` -> `superseded`. The field lives in
@@ -125,7 +132,7 @@ backend/src/config/         Django project: settings, urls, asgi. Not applicatio
 backend/src/config/settings/  base -> dev | test | prod. Secrets come from the environment.
 backend/src/core/           The application package.
 backend/src/core/tests/     Tests live beside the code they cover.
-frontend/                   Frontend client application.
+deploy/                     Production compose, Caddy, database roles.
 specs/                      One directory per spec. The authorisation record.
 docs/goals.md               What the project is for, in priority order. Specs trace back to it.
 docs/adr/                   Why a technical decision was made. Specs say what, ADRs say why.
