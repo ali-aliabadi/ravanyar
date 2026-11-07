@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#2f5bea">
+  <title>روان‌یار</title>
+  <link rel="preload" href="fonts/Vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="app.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">ر</span>
+      <span>روان‌یار</span>
+    </div>
+    <button class="btn ghost small" id="logout" hidden>خروج</button>
+  </header>
+
+  <main>
+    <p class="toast" id="toast" role="alert" hidden></p>
+
+    <!-- 1. Phone -->
+    <section class="card narrow" id="screen-phone" hidden>
+      <h1>ورود یا ثبت‌نام</h1>
+      <p class="muted">شمارهٔ موبایل خود را وارد کنید تا کد ورود برایتان پیامک شود.</p>
+      <form id="phone-form" novalidate>
+        <label class="field">
+          <span>شمارهٔ موبایل</span>
+          <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"
+                 dir="ltr" placeholder="۰۹۱۲ ۳۴۵ ۶۷۸۹" required>
+        </label>
+        <button class="btn primary block" type="submit">دریافت کد</button>
+      </form>
+    </section>
+
+    <!-- 2. Code, role and first consent -->
+    <section class="card narrow" id="screen-verify" hidden>
+      <h1>کد تأیید</h1>
+      <p class="muted">کد ۶ رقمی ارسال‌شده به <b dir="ltr" id="sent-to"></b> را وارد کنید.
+        <button class="link" type="button" id="change-phone">تغییر شماره</button></p>
+      <form id="verify-form" novalidate>
+        <label class="field">
+          <span>کد ورود</span>
+          <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code"
+                 dir="ltr" maxlength="6" class="code" placeholder="––––––" required>
+        </label>
+
+        <fieldset class="field">
+          <legend>از روان‌یار به‌عنوان چه کسی استفاده می‌کنید؟</legend>
+          <div class="segmented">
+            <label><input type="radio" name="role" value="client" checked><span>مراجع</span></label>
+            <label><input type="radio" name="role" value="therapist"><span>درمانگر</span></label>
+          </div>
+          <small class="muted">اگر قبلاً حساب ساخته‌اید، نقش فعلی شما تغییر نمی‌کند.</small>
+        </fieldset>
+
+        <label class="check">
+          <input type="checkbox" id="agree" required>
+          <span>
+            <button class="link" type="button" data-doc="terms">شرایط استفاده</button> و
+            <button class="link" type="button" data-doc="privacy">سیاست حریم خصوصی</button>
+            را خوانده‌ام و می‌پذیرم.
+          </span>
+        </label>
+
+        <button class="btn primary block" type="submit">ورود</button>
+        <button class="btn ghost block" type="button" id="resend" disabled>ارسال دوباره</button>
+      </form>
+    </section>
+
+    <!-- 3. Re-consent, when a document changed or was withdrawn -->
+    <section class="card narrow" id="screen-consent" hidden>
+      <h1>تأیید دوباره لازم است</h1>
+      <p class="muted">برای ادامه، متن‌های زیر را بخوانید و بپذیرید. تا زمانی که نپذیرید به حساب خود دسترسی ندارید.</p>
+      <ul class="docs" id="missing"></ul>
+      <button class="btn primary block" id="accept-all">می‌پذیرم</button>
+    </section>
+
+    <!-- 4. Signed in -->
+    <section id="screen-home" class="stack" hidden>
+      <div class="hero">
+        <h1>خوش آمدید</h1>
+        <p class="muted" id="hero-line"></p>
+      </div>
+
+      <div class="card">
+        <h2>حساب شما</h2>
+        <dl class="rows">
+          <div><dt>شمارهٔ موبایل</dt><dd dir="ltr" id="me-phone"></dd></div>
+          <div><dt>نقش</dt><dd><span class="chip" id="me-role"></span></dd></div>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>رضایت‌ها</h2>
+        <p class="muted">هر رضایت را می‌توانید هر زمان پس بگیرید. بدون رضایت به شرایط استفاده و حریم خصوصی، حساب قفل می‌ماند.</p>
+        <ul class="docs" id="consents"></ul>
+      </div>
+
+      <div class="card danger">
+        <h2>حذف حساب</h2>
+        <p class="muted">کلید رمزنگاری اطلاعات شما نابود می‌شود و این کار برگشت‌پذیر نیست.</p>
+        <button class="btn danger" id="delete">حذف حساب</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="doc-dialog">
+    <h2 id="doc-title"></h2>
+    <div id="doc-body" class="doc-body"></div>
+    <form method="dialog"><button class="btn primary block">بستن</button></form>
+  </dialog>
+
+  <dialog id="confirm-dialog">
+    <h2 id="confirm-title"></h2>
+    <p class="muted" id="confirm-text"></p>
+    <form method="dialog" class="actions">
+      <button class="btn ghost" value="no">انصراف</button>
+      <button class="btn danger" value="yes" id="confirm-yes"></button>
+    </form>
+  </dialog>
+</body>
+</html>
