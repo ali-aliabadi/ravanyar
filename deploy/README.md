@@ -4,7 +4,7 @@ One VPS with Docker, behind the host's existing nginx (Cloudflare + origin cert 
 The stack listens on `127.0.0.1:18082` only; nginx proxies `/api/` to it.
 
 ```bash
-git clone https://github.com/ali-aliabadi/ravanyar && cd ravanyar/deploy
+git clone https://github.com/ali-aliabadi/ravanyar /srv/ravanyar && cd /srv/ravanyar/deploy
 cp .env.example .env   # fill every empty value
 docker compose up -d --build
 ```
