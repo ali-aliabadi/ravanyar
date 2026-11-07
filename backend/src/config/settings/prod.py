@@ -33,8 +33,9 @@ DATABASES = {
 }
 
 STATIC_ROOT = BASE_DIR / "static"
+STATIC_URL = "/api/static/"
 
-# Caddy terminates TLS and talks plain HTTP to the app on the compose network.
+# nginx terminates TLS and talks plain HTTP to the app on localhost.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True

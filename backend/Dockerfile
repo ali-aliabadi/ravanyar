@@ -6,12 +6,6 @@ COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY manage.py ./
 COPY src ./src
-# collectstatic imports settings, so it gets throwaway values; the real ones come at runtime.
-RUN DJANGO_SECRET_KEY=build DJANGO_ALLOWED_HOSTS=x POSTGRES_DB=x POSTGRES_USER=x \
-    POSTGRES_PASSWORD=x POSTGRES_HOST=x KAVENEGAR_API_KEY=x RAVANYAR_PRELAUNCH=1 \
-    RAVANYAR_MASTER_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
-    RAVANYAR_BLIND_INDEX_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
-    DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py collectstatic --noinput
 RUN useradd --system app
 USER app
 ENV DJANGO_SETTINGS_MODULE=config.settings.prod

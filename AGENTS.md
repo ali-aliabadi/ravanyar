@@ -132,7 +132,7 @@ backend/src/config/         Django project: settings, urls, asgi. Not applicatio
 backend/src/config/settings/  base -> dev | test | prod. Secrets come from the environment.
 backend/src/core/           The application package.
 backend/src/core/tests/     Tests live beside the code they cover.
-deploy/                     Production compose, Caddy, database roles.
+deploy/                     Production compose, nginx snippet, database roles.
 specs/                      One directory per spec. The authorisation record.
 docs/goals.md               What the project is for, in priority order. Specs trace back to it.
 docs/adr/                   Why a technical decision was made. Specs say what, ADRs say why.

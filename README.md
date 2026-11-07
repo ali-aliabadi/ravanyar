@@ -41,7 +41,7 @@ Until launch, a spec is written for each feature but code does not wait for it t
 | `backend/` | Backend application code, settings, and dependencies |
 | `backend/src/config/` | Django project: settings, urls, ASGI entry point |
 | `backend/src/core/` | The application |
-| `deploy/` | Production compose file, Caddy (TLS), database roles - see `deploy/README.md` |
+| `deploy/` | Production compose file, nginx snippet, database roles - see `deploy/README.md` |
 | `specs/` | One directory per spec - the authorisation record |
 | `docs/adr/` | Why a technical decision was made |
 | `docs/goals.md` | What the project is for, in priority order |
