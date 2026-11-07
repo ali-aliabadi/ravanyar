@@ -9,10 +9,11 @@ on:
 permissions:
   contents: read
 
-# A second push cancels the first run instead of paying for both.
+# A second push cancels the first run instead of paying for both - except on main,
+# where cancelling could stop a deploy halfway.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Explicit bash adds -o pipefail, so `make ... | tee` still fails when make fails.
 defaults:
@@ -137,3 +138,29 @@ jobs:
       - run: make workflows
         env:
           GH_TOKEN: ${{ github.token }}
+
+  # A merge to main deploys once every gate above passes. The server pins the key to
+  # deploy/update.sh (forced command), so a leaked key can only redeploy main.
+  deploy:
+    name: deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint, types, unit, integration, spec-gate, security, workflows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Run deploy/update.sh on the server
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          TARGET: ${{ secrets.DEPLOY_TARGET }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o StrictHostKeyChecking=yes "$TARGET"
