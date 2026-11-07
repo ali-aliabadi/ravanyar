@@ -18,3 +18,18 @@ The app connects as `DB_APP_USER`, which owns no tables, so it cannot drop the a
 append-only trigger. `db-init.sh` only runs on an empty data volume.
 
 Back up `.env` (above all the two keys) somewhere other than this server.
+
+## Automatic deploys
+
+Every push to `main` that passes CI runs `deploy/update.sh` on the server (the `deploy` job in
+`.github/workflows/ci.yml`). One-time setup, as root on the server:
+
+1. A `ravanyar` user in the `docker` group owns the checkout and `.env`.
+2. Its `~/.ssh/authorized_keys` holds the CI public key, pinned to the script:
+   `command="/srv/ravanyar/deploy/update.sh",restrict ssh-ed25519 AAAA... ci-deploy`
+3. The GitHub environment `production` holds the secrets `DEPLOY_SSH_KEY` (private key),
+   `DEPLOY_KNOWN_HOSTS` (`ssh-keyscan -p PORT HOST`), `DEPLOY_TARGET` (`ravanyar@HOST`) and
+   `DEPLOY_PORT`.
+
+The `docker` group is root-equivalent, so anyone who can merge to `main` can run code on this
+server. Pre-launch that is acceptable; the production server should not share a host.
