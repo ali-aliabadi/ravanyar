@@ -1,0 +1,52 @@
+# Production stack: Postgres and the API. The host's nginx proxies to it (nginx-margin.conf).
+# Run from this directory:
+#   docker compose up -d --build
+name: ravanyar
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      # The owner role owns the tables; the app connects as a role that cannot drop triggers.
+      POSTGRES_USER: ${DB_OWNER_USER}
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DB_APP_USER: ${DB_APP_USER}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db-init.sh:/docker-entrypoint-initdb.d/db-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  # Runs migrations as the owner, then exits. The app never holds owner credentials.
+  # Also copies the API docs' static files to the host, where nginx serves them.
+  migrate:
+    build: ../backend
+    user: root
+    env_file: .env
+    volumes:
+      - /srv/ravanyar-static:/app/static
+    environment:
+      POSTGRES_USER: ${DB_OWNER_USER}
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD}
+    command: ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput"]
+    depends_on:
+      db: {condition: service_healthy}
+
+  app:
+    build: ../backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${DB_APP_USER}
+      POSTGRES_PASSWORD: ${DB_APP_PASSWORD}
+    ports: ["127.0.0.1:18082:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+volumes:
+  pgdata:

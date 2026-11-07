@@ -5,7 +5,7 @@ from django.core.exceptions import ImproperlyConfigured
 from core.crypto import load_key
 
 from .base import *
-from .base import CONSENT_VERSIONS, env
+from .base import BASE_DIR, CONSENT_VERSIONS, env
 
 DEBUG = False
 SECRET_KEY = env("DJANGO_SECRET_KEY")
@@ -16,7 +16,9 @@ MASTER_KEY = load_key("RAVANYAR_MASTER_KEY", env("RAVANYAR_MASTER_KEY"))
 BLIND_INDEX_KEY = load_key("RAVANYAR_BLIND_INDEX_KEY", env("RAVANYAR_BLIND_INDEX_KEY"))
 KAVENEGAR_API_KEY = env("KAVENEGAR_API_KEY")
 
-if any("-draft-" in version for version in CONSENT_VERSIONS.values()):
+# Pre-launch deployments (AGENTS.md §1) hold no real users, so draft consent texts are allowed.
+PRELAUNCH = env("RAVANYAR_PRELAUNCH", "") == "1"
+if not PRELAUNCH and any("-draft-" in version for version in CONSENT_VERSIONS.values()):
     raise ImproperlyConfigured("placeholder consent versions cannot run in production (SPEC-0001)")
 
 DATABASES = {
@@ -30,6 +32,11 @@ DATABASES = {
     }
 }
 
+STATIC_ROOT = BASE_DIR / "static"
+STATIC_URL = "/api/static/"
+
+# nginx terminates TLS and talks plain HTTP to the app on localhost.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

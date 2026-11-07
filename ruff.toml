@@ -1,0 +1,12 @@
+line-length = 100
+src = ["backend/src"]
+extend-exclude = ["*/migrations/*"]
+
+[lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "DJ", "S", "SIM", "RUF", "T20"]
+ignore = ["S101"]
+
+[lint.per-file-ignores]
+"backend/src/config/settings/*" = ["F403", "F405"]
+"**/tests/*" = ["S105", "S106"]
+"scripts/*" = ["S603", "S607", "T20"]

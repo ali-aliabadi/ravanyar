@@ -31,16 +31,17 @@ make format # fix what is auto-fixable
 make help   # all targets
 ```
 
-A change to `src/` needs an approved spec merged on `main` first. Copy `specs/TEMPLATE/` to
-`specs/SPEC-0001-your-slug/`, open that as its own PR, then implement it in a second PR whose
-branch name carries the spec id. The full rules are in [AGENTS.md](./AGENTS.md).
+Until launch, a spec is written for each feature but code does not wait for it to merge (AGENTS.md
+§1, pre-launch). The full rules are in [AGENTS.md](./AGENTS.md).
 
 ## Layout
 
 | Path | What lives there |
 |---|---|
-| `src/config/` | Django project: settings, urls, ASGI entry point |
-| `src/core/` | The application |
+| `backend/` | Backend application code, settings, and dependencies |
+| `backend/src/config/` | Django project: settings, urls, ASGI entry point |
+| `backend/src/core/` | The application |
+| `deploy/` | Production compose file, nginx snippet, database roles - see `deploy/README.md` |
 | `specs/` | One directory per spec - the authorisation record |
 | `docs/adr/` | Why a technical decision was made |
 | `docs/goals.md` | What the project is for, in priority order |

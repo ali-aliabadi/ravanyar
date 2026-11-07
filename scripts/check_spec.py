@@ -14,7 +14,7 @@ import sys
 from check_spec_format import front_matter
 
 SPEC_ID = re.compile(r"SPEC-\d{4}")
-GUARDED = ("src/",)
+GUARDED = ("backend/src/",)
 
 
 def is_approved(spec_md: str) -> bool:
@@ -40,7 +40,7 @@ def main() -> int:
     context = f"{os.environ.get('PR_TITLE', '')} {branch}"
     found = SPEC_ID.search(context)
     if not found:
-        print(f"This PR changes {len(guarded)} file(s) under src/ but names no spec.")
+        print(f"This PR changes {len(guarded)} file(s) under backend/src/ but names no spec.")
         print("Put a SPEC-NNNN id in the branch name or PR title,")
         print("for example: feat/SPEC-0001-tutor-replies")
         return 1

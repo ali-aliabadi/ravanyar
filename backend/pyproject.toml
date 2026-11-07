@@ -31,10 +31,10 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "DJ", "S", "SIM", "RUF"
 ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/config/settings/*" = ["F403", "F405"]
+"**/config/settings/*" = ["F403", "F405"]
 "**/tests/*" = ["S105", "S106"]
 # Scripts are CLIs: print is their output. Application code logs instead (T20).
-"scripts/*" = ["S603", "S607", "T20"]
+"**/scripts/*" = ["S603", "S607", "T20"]
 
 [tool.mypy]
 strict = true
@@ -52,8 +52,8 @@ django_settings_module = "config.settings.test"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 # scripts/: the gates are code too, and are tested like code.
-pythonpath = ["src", "scripts"]
-testpaths = ["src", "scripts"]
+pythonpath = ["src", "../scripts"]
+testpaths = ["src", "../scripts"]
 addopts = "--strict-markers -q"
 markers = [
     "unit: no database, no containers, milliseconds",
