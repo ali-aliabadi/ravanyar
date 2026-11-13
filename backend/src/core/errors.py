@@ -34,3 +34,25 @@ class RateLimitedError(ServiceError):
 class SmsUnavailableError(ServiceError):
     status = 503
     code = "sms_unavailable"
+
+
+class NotFoundError(ServiceError):
+    status = 404
+    code = "not_found"
+
+
+class WrongStateError(ServiceError):
+    """The object is not in a state that allows this, e.g. editing a profile under review."""
+
+    status = 409
+    code = "wrong_state"
+
+
+class IncompleteError(ServiceError):
+    status = 422
+    code = "incomplete"
+
+
+class BadFileError(ServiceError):
+    status = 422
+    code = "bad_file"
