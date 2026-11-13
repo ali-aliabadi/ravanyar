@@ -296,6 +296,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // SPEC-0002: staging banner when the backend runs with test numbers.
+  api("GET", "/health").then((h) => { $("staging").hidden = !(h && h.test_mode); }).catch(() => null);
+
   if (store.get("token")) load();
   else show("phone");
 });
