@@ -5,7 +5,6 @@ Every route needs `consented` auth (the NinjaAPI default) unless it names anothe
 """
 
 from datetime import datetime
-from typing import Literal
 from uuid import UUID
 
 from django.conf import settings
@@ -41,7 +40,7 @@ class PhoneIn(Schema):
 
 class VerifyIn(PhoneIn):
     code: str
-    role: Literal[Role.CLIENT, Role.THERAPIST]
+    role: Role  # admin only for staging test numbers (SPEC-0003)
     terms_version: str
     privacy_version: str
 

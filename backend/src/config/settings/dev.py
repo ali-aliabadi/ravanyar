@@ -6,6 +6,7 @@ from .base import *
 from .base import env
 
 DEBUG = True
+PRELAUNCH = True  # seed_staging works locally
 SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-only-not-a-real-secret")
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 

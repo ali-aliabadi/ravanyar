@@ -1,4 +1,4 @@
-"""Persistence only (AGENTS.md §4). No column holds identifying data in plaintext (ADR 0004)."""
+"""Accounts, sign-in, consent, access log (SPEC-0001). No plaintext identifiers (ADR 0004)."""
 
 from uuid import uuid4
 
@@ -73,6 +73,7 @@ class Consent(models.Model):
 class Purpose(models.TextChoices):
     PROFILE = "profile"
     CONSENTS = "consents"
+    CREDENTIALS = "credentials"
 
 
 class Decision(models.TextChoices):

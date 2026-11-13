@@ -1,5 +1,10 @@
-"use strict";
-// Never log anything here: phone numbers and tokens are personal data (AGENTS.md §1.4).
+// Sign-in, consents, the account screen and the role-based tabs. Each role's screens live in
+// their own module. Never log anything here: phone numbers and tokens are personal data.
+import {
+  $, api, busy, confirmAction, fa, h, message, setSignedOutHandler, store, toast,
+} from "./lib.js";
+import { tabs as adminTabs } from "./admin.js";
+import { tabs as therapistTabs } from "./therapist.js";
 
 // shortcut: mirrors CONSENT_VERSIONS in backend settings; bump both together, or expose them
 // from the API once versions change more than once.
@@ -22,91 +27,62 @@ const DOCS = {
 };
 
 const ROLES = { client: "مراجع", therapist: "درمانگر", admin: "مدیر" };
-
-const ERRORS = {
-  rate_limited: "درخواست‌ها زیاد بود. یک دقیقه صبر کنید و دوباره تلاش کنید.",
-  sms_unavailable: "ارسال پیامک ممکن نشد. کمی بعد دوباره تلاش کنید.",
-  code_rejected: "کد درست نیست یا منقضی شده است.",
-  outdated_version: "متن‌ها به‌روز شده‌اند. صفحه را دوباره بارگذاری کنید.",
-  forbidden: "اجازهٔ این کار را ندارید.",
-};
-
-const $ = (id) => document.getElementById(id);
-const fa = (s) => String(s).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]);
-const store = {
-  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
-  set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
-  del: (k) => { try { localStorage.removeItem(k); } catch { /* private mode */ } },
-};
+const ACCOUNT = { id: "account", label: "حساب" };
+const TABS = { client: [], therapist: therapistTabs, admin: adminTabs };
 
 let phone = "";
+let me = null;
+let testMode = false;
 let resendTimer = 0;
 
-class ApiError extends Error {
-  constructor(status, detail) { super(String(status)); this.status = status; this.detail = detail; }
-}
-
-async function api(method, path, body) {
-  const headers = { Accept: "application/json" };
-  const token = store.get("token");
-  if (token) headers.Authorization = `Bearer ${token}`;
-  if (body) headers["Content-Type"] = "application/json";
-  let res;
-  try {
-    res = await fetch(`/api${path}`, { method, headers, body: body && JSON.stringify(body) });
-  } catch {
-    throw new ApiError(0, "network");
-  }
-  const data = res.status === 204 ? null : await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(res.status, data && data.detail);
-  return data;
-}
-
-function message(err) {
-  if (err.status === 0) return "اتصال برقرار نشد. اینترنت خود را بررسی کنید.";
-  if (typeof err.detail === "string" && ERRORS[err.detail]) return ERRORS[err.detail];
-  if (err.status === 422 && Array.isArray(err.detail)) {
-    const field = err.detail[0] && err.detail[0].loc && err.detail[0].loc.at(-1);
-    if (field === "phone") return "شمارهٔ موبایل معتبر نیست. مثل ۰۹۱۲۳۴۵۶۷۸۹ وارد کنید.";
-    if (field === "code") return "کد ۶ رقم است.";
-  }
-  return "خطایی رخ داد. دوباره تلاش کنید.";
-}
-
-function toast(text, ok = false) {
-  const el = $("toast");
-  el.textContent = text;
-  el.classList.toggle("ok", ok);
-  el.hidden = !text;
-}
-
 function show(name) {
-  for (const s of document.querySelectorAll("main > section")) s.hidden = s.id !== `screen-${name}`;
-  $("logout").hidden = !(name === "home" || name === "consent");
+  for (const sec of document.querySelectorAll("main > section")) sec.hidden = sec.id !== `screen-${name}`;
+  const signedIn = name === "account" || name === "view" || name === "consent";
+  $("logout").hidden = !signedIn;
+  $("tabs").hidden = !(name === "account" || name === "view");
   toast("");
   const focus = document.querySelector(`#screen-${name} input, #screen-${name} button.primary`);
   if (focus) focus.focus();
 }
 
-// Disables the button while the request runs and turns failures into a toast.
-async function busy(button, work) {
-  button.disabled = true;
-  button.setAttribute("aria-busy", "true");
+// Tabs: the role's own screens, then the account screen. The hash remembers the open tab.
+function renderTabs() {
+  const tabs = [...TABS[me.role] || [], ACCOUNT];
+  const want = location.hash.slice(1).split("/")[0];
+  const active = tabs.find((t) => t.id === want) || tabs[0];
+  $("tabs").replaceChildren(...tabs.map((t) => h("button", {
+    class: t === active ? "tab active" : "tab",
+    "aria-current": t === active ? "page" : null,
+    onclick: () => { location.hash = t.id; },
+  }, t.label)));
+  return active;
+}
+
+async function route() {
+  if (!me) return;
+  const tab = renderTabs();
+  if (tab === ACCOUNT) {
+    await renderConsents();
+    return show("account");
+  }
+  const view = $("screen-view");
+  view.replaceChildren(h("p", { class: "muted" }, "در حال بارگذاری…"));
+  show("view");
   try {
-    await work();
+    await tab.render(view, { me, testMode, rerender: route });
   } catch (err) {
     if (err.status === 401) return signedOut();
+    view.replaceChildren();
     toast(message(err));
-  } finally {
-    button.disabled = false;
-    button.removeAttribute("aria-busy");
   }
 }
 
 function signedOut() {
   store.del("token");
+  me = null;
   show("phone");
 }
+setSignedOutHandler(signedOut);
 
 function startResendCountdown() {
   clearInterval(resendTimer);
@@ -129,14 +105,10 @@ async function sendCode() {
 
 async function load() {
   try {
-    const me = await api("GET", "/me");
+    me = await api("GET", "/me");
     $("me-phone").textContent = fa(me.phone.replace(/^\+98/, "0"));
     $("me-role").textContent = ROLES[me.role] || me.role;
-    $("hero-line").textContent = me.role === "therapist"
-      ? "حساب درمانگری شما فعال است. امکانات بیشتر به‌زودی اضافه می‌شود."
-      : "حساب شما فعال است. امکانات بیشتر به‌زودی اضافه می‌شود.";
-    await renderConsents();
-    show("home");
+    await route();
   } catch (err) {
     if (err.status === 403 && err.detail === "consent_required") return renderMissing();
     if (err.status === 401) return signedOut();
@@ -202,18 +174,6 @@ function openDoc(doc) {
   $("doc-title").textContent = DOCS[doc].title;
   $("doc-body").textContent = DOCS[doc].body;
   $("doc-dialog").showModal();
-}
-
-function confirmAction(title, text, yes) {
-  const dlg = $("confirm-dialog");
-  $("confirm-title").textContent = title;
-  $("confirm-text").textContent = text;
-  $("confirm-yes").textContent = yes;
-  dlg.returnValue = "";
-  dlg.showModal();
-  return new Promise((resolve) => {
-    dlg.addEventListener("close", () => resolve(dlg.returnValue === "yes"), { once: true });
-  });
 }
 
 async function withdraw(doc, btn) {
@@ -297,7 +257,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // SPEC-0002: staging banner when the backend runs with test numbers.
-  api("GET", "/health").then((h) => { $("staging").hidden = !(h && h.test_mode); }).catch(() => null);
+  // Test numbers may also sign in as admin there (SPEC-0003).
+  api("GET", "/health").then((health) => {
+    testMode = Boolean(health && health.test_mode);
+    $("staging").hidden = !testMode;
+    $("role-admin").hidden = !testMode;
+  }).catch(() => null);
+  window.addEventListener("hashchange", route);
 
   if (store.get("token")) load();
   else show("phone");
