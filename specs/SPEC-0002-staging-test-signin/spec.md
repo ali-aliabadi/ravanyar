@@ -1,7 +1,7 @@
 ---
 id: SPEC-0002
 title: Sign in on staging with test numbers, without SMS
-status: draft   # draft | approved | implemented | superseded
+status: approved   # draft | approved | implemented | superseded
 goal: 1         # which goal in docs/goals.md this serves
 data: none      # none | identifying | clinical - see AGENTS.md §1.4-§1.5
 ---
