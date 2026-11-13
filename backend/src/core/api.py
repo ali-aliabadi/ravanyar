@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
+from django.conf import settings
 from django.db import connection
 from django.http import HttpRequest
 from ninja import Router, Schema, Status
@@ -23,6 +24,10 @@ router = Router()
 
 class Health(Schema):
     status: str
+
+
+class HealthOut(Health):
+    test_mode: bool
 
 
 class PhoneIn(Schema):
@@ -71,10 +76,11 @@ class ConsentOut(Schema):
     withdrawn_at: datetime | None
 
 
-@router.get("/health", response=Health, auth=None)
-def health(request: HttpRequest) -> Health:
-    """Liveness: the process is up. Touches nothing, so it never flaps."""
-    return Health(status="ok")
+@router.get("/health", response=HealthOut, auth=None)
+def health(request: HttpRequest) -> HealthOut:
+    """Liveness: the process is up. Touches nothing, so it never flaps. `test_mode` lets the
+    web client show a staging banner (SPEC-0002)."""
+    return HealthOut(status="ok", test_mode=bool(settings.TEST_PHONES))
 
 
 @router.get("/ready", response=Health, auth=None)

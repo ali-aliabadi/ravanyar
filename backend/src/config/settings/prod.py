@@ -2,7 +2,7 @@
 
 from django.core.exceptions import ImproperlyConfigured
 
-from core.crypto import load_key
+from core.crypto import load_key, normalise_phone
 
 from .base import *
 from .base import BASE_DIR, CONSENT_VERSIONS, env
@@ -20,6 +20,17 @@ KAVENEGAR_API_KEY = env("KAVENEGAR_API_KEY")
 PRELAUNCH = env("RAVANYAR_PRELAUNCH", "") == "1"
 if not PRELAUNCH and any("-draft-" in version for version in CONSENT_VERSIONS.values()):
     raise ImproperlyConfigured("placeholder consent versions cannot run in production (SPEC-0001)")
+
+# SPEC-0002: staging test sign-in. Fails closed: refused unless RAVANYAR_PRELAUNCH=1, so the
+# launch server, which must not set it, cannot run with a fixed sign-in code.
+TEST_PHONES = frozenset(
+    normalise_phone(raw) for raw in env("RAVANYAR_TEST_PHONES", "").split(",") if raw.strip()
+)
+TEST_CODE = env("RAVANYAR_TEST_CODE", "")
+if TEST_PHONES and not PRELAUNCH:
+    raise ImproperlyConfigured("RAVANYAR_TEST_PHONES needs RAVANYAR_PRELAUNCH=1 (SPEC-0002)")
+if TEST_PHONES and not (len(TEST_CODE) == 6 and TEST_CODE.isascii() and TEST_CODE.isdigit()):
+    raise ImproperlyConfigured("RAVANYAR_TEST_CODE must be 6 digits (SPEC-0002)")
 
 DATABASES = {
     "default": {

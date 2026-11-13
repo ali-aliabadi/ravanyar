@@ -64,6 +64,12 @@ p { margin: 0 0 16px; }
 .muted { color: var(--muted); }
 small.muted { display: block; margin-top: 6px; font-size: 0.82rem; }
 
+/* Staging banner (SPEC-0002) */
+.staging {
+  margin: 0; padding: 8px 16px; text-align: center; font-size: 0.85rem; font-weight: 700;
+  background: var(--danger-soft); color: var(--danger);
+}
+
 /* Top bar */
 .bar {
   display: flex; align-items: center; justify-content: space-between;

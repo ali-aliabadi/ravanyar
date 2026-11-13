@@ -7,4 +7,4 @@ pytestmark = pytest.mark.unit
 def test_health_is_ok_without_a_database() -> None:
     response = Client().get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "test_mode": False}

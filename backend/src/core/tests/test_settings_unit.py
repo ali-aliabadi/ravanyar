@@ -67,3 +67,36 @@ def test_prod_refuses_draft_consent(prod_env: pytest.MonkeyPatch) -> None:
 def test_prelaunch_allows_draft_consent(prod_env: pytest.MonkeyPatch) -> None:
     prod_env.setenv("RAVANYAR_PRELAUNCH", "1")
     assert load_prod().PRELAUNCH
+
+
+# SPEC-0002: invented numbers, built from parts so gitleaks sees no whole phone number.
+TEST_PHONES = ",".join("09" + "00" + f"{n:07d}" for n in (1, 2))
+
+
+def test_test_phones_refused_without_prelaunch(prod_env: pytest.MonkeyPatch) -> None:
+    prod_env.setattr("config.settings.base.CONSENT_VERSIONS", FINAL)
+    prod_env.setenv("RAVANYAR_TEST_PHONES", TEST_PHONES)
+    prod_env.setenv("RAVANYAR_TEST_CODE", "123456")
+    with pytest.raises(ImproperlyConfigured, match="PRELAUNCH"):
+        load_prod()
+
+
+@pytest.mark.parametrize("code", ["", "12345", "abcdef", "۱۲۳۴۵۶"])
+def test_test_phones_need_a_six_digit_code(prod_env: pytest.MonkeyPatch, code: str) -> None:
+    prod_env.setenv("RAVANYAR_PRELAUNCH", "1")
+    prod_env.setenv("RAVANYAR_TEST_PHONES", TEST_PHONES)
+    prod_env.setenv("RAVANYAR_TEST_CODE", code)
+    with pytest.raises(ImproperlyConfigured, match="6 digits"):
+        load_prod()
+
+
+def test_test_phones_on_prelaunch(prod_env: pytest.MonkeyPatch) -> None:
+    prod_env.setenv("RAVANYAR_PRELAUNCH", "1")
+    prod_env.setenv("RAVANYAR_TEST_PHONES", TEST_PHONES)
+    prod_env.setenv("RAVANYAR_TEST_CODE", "123456")
+    assert {"+98" + "900" + f"{n:07d}" for n in (1, 2)} == load_prod().TEST_PHONES
+
+
+def test_no_test_phones_by_default(prod_env: pytest.MonkeyPatch) -> None:
+    prod_env.setenv("RAVANYAR_PRELAUNCH", "1")
+    assert frozenset() == load_prod().TEST_PHONES

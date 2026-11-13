@@ -54,3 +54,8 @@ CONSENT_VERSIONS = {"terms": "terms-draft-0", "privacy": "privacy-draft-0"}
 
 KAVENEGAR_API_KEY = os.environ.get("KAVENEGAR_API_KEY", "")
 KAVENEGAR_TEMPLATE = os.environ.get("KAVENEGAR_TEMPLATE", "ravanyar-code")
+
+# Staging only (SPEC-0002): these numbers sign in with TEST_CODE and never reach Kavenegar.
+# Empty everywhere except prod.py, which allows them only on a pre-launch deployment.
+TEST_PHONES: frozenset[str] = frozenset()
+TEST_CODE = ""

@@ -2,6 +2,7 @@
 
 import hashlib
 import hmac
+import logging
 import secrets
 from datetime import timedelta
 
@@ -27,6 +28,7 @@ MAX_ATTEMPTS = 5
 RESEND_AFTER = timedelta(seconds=60)
 CODES_PER_HOUR = 5
 SESSION_TTL = timedelta(days=30)
+log = logging.getLogger(__name__)
 
 
 def _code_hash(phone_index: str, code: str) -> str:
@@ -48,10 +50,14 @@ def request_code(phone: str) -> None:
     # ponytail: count-then-insert, two concurrent requests can both pass; lock if abused.
     if recent.count() >= CODES_PER_HOUR or recent.filter(created_at__gte=now - RESEND_AFTER):
         raise RateLimitedError
-    code = f"{secrets.randbelow(10**6):06d}"
+    test = phone in settings.TEST_PHONES
+    code = settings.TEST_CODE if test else f"{secrets.randbelow(10**6):06d}"
     row = SignInCode.objects.create(
         phone_index=index, code_hash=_code_hash(index, code), expires_at=now + CODE_TTL
     )
+    if test:  # SPEC-0002: staging test number, no SMS
+        log.warning("staging test sign-in code issued")
+        return
     try:
         sms.send_code(phone, code)
     except SmsUnavailableError:
@@ -83,6 +89,8 @@ def verify_code(phone: str, code: str, role: Role, terms: str, privacy: str) -> 
             grant_consent(account, Document.TERMS, terms)
             grant_consent(account, Document.PRIVACY, privacy)
             token = _new_session(account)
+            if phone in settings.TEST_PHONES:
+                log.warning("staging test sign-in account=%s", account.pk)
         else:
             challenge.attempts += 1
         challenge.save(update_fields=["used_at", "attempts"])
