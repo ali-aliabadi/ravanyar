@@ -4,6 +4,7 @@ from ninja import NinjaAPI
 from ninja.errors import ValidationError
 
 from core.api import router as core_router
+from core.api_booking import router as booking_router
 from core.api_search import router as search_router
 from core.api_verification import router as verification_router
 from core.auth import consented
@@ -14,6 +15,7 @@ api = NinjaAPI(title="core", version="0.1.0", auth=consented)
 api.add_router("", core_router)
 api.add_router("", verification_router)
 api.add_router("", search_router)
+api.add_router("", booking_router)
 
 
 @api.exception_handler(ServiceError)

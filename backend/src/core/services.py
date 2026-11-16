@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from core import sms, verification
+from core import booking, sms, verification
 from core.access import authorize, read_phone
 from core.crypto import aad, blind_index, encrypt, new_data_key, wrap
 from core.errors import (
@@ -140,6 +140,7 @@ def delete_account(account: Account) -> None:
         )
         AuthSession.objects.filter(account=account, revoked_at=None).update(revoked_at=now)
         verification.forget(account)
+        booking.forget(account)
 
 
 def has_current_consent(account: Account) -> bool:

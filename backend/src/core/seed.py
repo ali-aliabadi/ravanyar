@@ -4,24 +4,29 @@ Ids are derived from fixed names, so running it again updates the same rows. Eac
 spec adds its own demo data here.
 """
 
+from datetime import datetime, time, timedelta
+from datetime import timezone as tz
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from django.db import transaction
 from django.utils import timezone
 
 from core.crypto import new_data_key, wrap
-from core.models import Account, Review, Role, TherapistProfile
+from core.models import Account, Review, Role, Slot, TherapistProfile
 
 # Invented people. Fees in rial. The draft one shows that search finds approved profiles only.
 A, D = Review.APPROVED, Review.DRAFT
 THERAPISTS = [
-    ("دکتر سارا نمونه", "روان‌شناس بالینی", "اضطراب، افسردگی، CBT", 12_000_000, A),
-    ("دکتر امید آزمایشی", "روان‌شناس مشاوره", "زوج‌درمانی، روابط", 10_000_000, A),
-    ("مریم فرضی", "کارشناس ارشد روان‌شناسی بالینی", "استرس شغلی، ذهن‌آگاهی", 8_000_000, A),
-    ("دکتر رضا ساختگی", "روان‌پزشک", "اختلال خواب، اضطراب", 15_000_000, A),
-    ("نگار پیش‌نویس", "روان‌شناس کودک", "اضطراب کودک", 9_000_000, D),
+    ("دکتر سارا نمونه", "روان‌شناس بالینی", ["anxiety", "depression"], 12_000_000, A),
+    ("دکتر امید آزمایشی", "روان‌شناس مشاوره", ["couples", "family"], 10_000_000, A),
+    ("مریم فرضی", "کارشناس ارشد روان‌شناسی بالینی", ["work_stress"], 8_000_000, A),
+    ("دکتر رضا ساختگی", "روان‌پزشک", ["sleep", "anxiety"], 15_000_000, A),
+    ("نگار پیش‌نویس", "روان‌شناس کودک", ["child", "anxiety"], 9_000_000, D),
 ]
 BIO = "این پروفایل ساختگی و فقط برای نسخهٔ آزمایشی است."
+# shortcut: fixed offset, the slim image has no tz database; Iran has no DST since 2022.
+TEHRAN = tz(timedelta(hours=3, minutes=30))
+SLOT_HOURS = (10, 17)
 
 
 def demo_id(name: str) -> UUID:
@@ -54,3 +59,15 @@ def run() -> None:
                 "reviewed_at": timezone.now() if status == A else None,
             },
         )
+        if status == A:
+            _slots(account)
+
+
+def _slots(therapist: Account) -> None:
+    """Open slots for the next seven days (SPEC-0004). Ids from therapist, day and hour."""
+    today = datetime.now(TEHRAN).date()
+    for day in (today + timedelta(days=d) for d in range(1, 8)):
+        for hour in SLOT_HOURS:
+            start = datetime.combine(day, time(hour), TEHRAN)
+            pk = uuid5(NAMESPACE_URL, f"ravanyar-demo-slot:{therapist.pk}:{start.isoformat()}")
+            Slot.objects.get_or_create(pk=pk, defaults={"therapist": therapist, "start_at": start})

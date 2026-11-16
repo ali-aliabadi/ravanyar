@@ -1,5 +1,5 @@
 // Admin screens. SPEC-0003: review therapists' credentials, approve or reject.
-import { api, busy, chip, download, faDate, h, toast, toman } from "./lib.js";
+import { api, busy, chip, download, faDate, h, specialtyNames, toast, toman } from "./lib.js";
 import { KINDS, REASONS, STATUS } from "./therapist.js";
 
 let filter = "submitted";
@@ -23,7 +23,7 @@ function card(p, ctx) {
     h("div", { class: "row" }, h("h2", { class: "grow" }, p.display_name || "بدون نام"), chip(label, kind)),
     h("dl", { class: "rows" },
       h("div", {}, h("dt", {}, "عنوان"), h("dd", {}, p.title)),
-      h("div", {}, h("dt", {}, "تخصص"), h("dd", {}, p.specialties)),
+      h("div", {}, h("dt", {}, "تخصص"), h("dd", {}, specialtyNames(p.specialties))),
       h("div", {}, h("dt", {}, "هزینه"), h("dd", {}, p.fee_rial ? toman(p.fee_rial) : "—")),
       p.submitted_at && h("div", {}, h("dt", {}, "ارسال"), h("dd", {}, faDate(p.submitted_at)))),
     p.bio && h("p", { class: "muted" }, p.bio),

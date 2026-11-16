@@ -20,7 +20,7 @@ PROFILE = {
     "display_name": "دکتر نمونه",
     "title": "روان‌شناس بالینی",
     "bio": "متن معرفی",
-    "specialties": "اضطراب",
+    "specialties": ["anxiety"],
     "fee_rial": 9_000_000,
 }
 
@@ -136,6 +136,7 @@ def test_deleting_therapist_blanks_published_profile(sign_in: Callable[..., str]
     client.delete("/api/me", **bearer(token))
     profile = TherapistProfile.objects.get()
     assert (profile.display_name, profile.bio, profile.status) == ("", "", "draft")
+    assert profile.specialties == []
 
 
 def test_admin_sign_in_only_for_staging_test_numbers(sent_codes: dict[str, str]) -> None:

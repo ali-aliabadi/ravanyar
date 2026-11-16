@@ -136,5 +136,5 @@ def decide(admin: Account, therapist_id: UUID, reason: RejectReason | None) -> T
 def forget(account: Account) -> None:
     """Account deletion: the published text is plaintext, so it is blanked, not shredded."""
     TherapistProfile.objects.filter(account=account).update(
-        display_name="", title="", bio="", specialties="", status=Review.DRAFT
+        display_name="", title="", bio="", specialties=[], status=Review.DRAFT
     )

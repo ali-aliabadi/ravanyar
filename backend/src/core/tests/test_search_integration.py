@@ -17,16 +17,22 @@ JSON = "application/json"
 PUBLIC = {"id", "display_name", "title", "specialties", "bio", "fee_rial"}
 
 
-def profile(status: Review = Review.APPROVED, active: bool = True, **text: str) -> TherapistProfile:
+def profile(
+    status: Review = Review.APPROVED, active: bool = True, **fields: Any
+) -> TherapistProfile:
     account = Account.objects.create(role=Role.THERAPIST, is_active=active)
-    fields = {"display_name": "دکتر نمونه", "title": "روان‌شناس", "specialties": "", **text}
+    fields = {"display_name": "دکتر نمونه", "title": "روان‌شناس", **fields}
     return TherapistProfile.objects.create(
         account=account, status=status, fee_rial=9_000_000, reviewed_at=timezone.now(), **fields
     )
 
 
-def find(token: str, q: str = "") -> list[dict[str, Any]]:
-    response = Client().post("/api/therapists/search", {"q": q}, JSON, **bearer(token))
+def search(token: str, **body: str) -> Any:
+    return Client().post("/api/therapists/search", body, JSON, **bearer(token))
+
+
+def find(token: str, q: str = "", **body: str) -> list[dict[str, Any]]:
+    response = search(token, q=q, **body)
     assert response.status_code == 200, response.content
     items: list[dict[str, Any]] = response.json()["items"]
     return items
@@ -44,23 +50,44 @@ def test_only_approved_profiles_are_found(sign_in: Callable[..., str]) -> None:
 
 def test_search_matches_letter_variants_and_half_spaces(sign_in: Callable[..., str]) -> None:
     token = sign_in(make_phone(401))
-    anxiety = profile(title="روان‌شناس بالینی", specialties="اضطراب، افسردگی")
-    child = profile(title="مشاور", specialties="كودك")  # typed with Arabic kaf
+    clinical = profile(title="روان‌شناس بالینی")
+    named = profile(display_name="دکتر كاظمي", title="مشاور")  # Arabic kaf and yeh
 
     def ids(q: str) -> set[str]:
         return {p["id"] for p in find(token, q)}
 
-    assert ids("روانشناس") == {str(anxiety.pk)}  # no half-space in the query
-    assert ids("افسردگي") == {str(anxiety.pk)}  # Arabic yeh in the query
-    assert ids("کودک") == {str(child.pk)}  # Persian kaf in the query
+    assert ids("روانشناس") == {str(clinical.pk)}  # no half-space in the query
+    assert ids("كاظمي") == ids("کاظمی") == {str(named.pk)}
     assert ids("نامرتبط") == set()
+
+
+def test_search_filters_by_specialty(sign_in: Callable[..., str]) -> None:
+    token = sign_in(make_phone(406))
+    anxious = profile(specialties=["anxiety", "depression"])
+    profile(specialties=["couples"])
+    named = profile(display_name="دکتر الف", specialties=["anxiety"])
+    profile(Review.SUBMITTED, specialties=["anxiety"])
+
+    def ids(**body: str) -> set[str]:
+        return {p["id"] for p in find(token, **body)}
+
+    assert ids(specialty="anxiety") == {str(anxious.pk), str(named.pk)}
+    assert ids(q="الف", specialty="anxiety") == {str(named.pk)}
+    assert ids(specialty="grief") == set()
+    assert find(token, specialty="depression")[0]["specialties"] == ["anxiety", "depression"]
+
+
+def test_unknown_specialty_is_refused(sign_in: Callable[..., str]) -> None:
+    response = search(sign_in(make_phone(407)), specialty="made-up-code")
+    assert response.status_code == 422
+    assert "made-up-code" not in response.content.decode()
 
 
 def test_profile_leaves_search_when_not_approved(sign_in: Callable[..., str]) -> None:
     client_token = sign_in(make_phone(402))
     token = sign_in(make_phone(403), role="therapist")
     client = Client()
-    body = {"display_name": "دکتر الف", "title": "روان‌شناس", "bio": "", "specialties": ""}
+    body = {"display_name": "دکتر الف", "title": "روان‌شناس", "bio": "", "specialties": []}
     assert client.put("/api/therapist/profile", body, JSON, **bearer(token)).status_code == 200
     TherapistProfile.objects.update(status=Review.APPROVED, fee_rial=9_000_000)
     assert len(find(client_token)) == 1
@@ -88,8 +115,9 @@ def test_search_text_is_not_logged(
 ) -> None:
     token = sign_in(make_phone(405))
     caplog.set_level(logging.DEBUG)
-    find(token, "افکار خودکشی")
-    response = Client().post("/api/therapists/search", {"q": "x" * 101}, JSON, **bearer(token))
+    find(token, "افکار خودکشی", specialty="depression")
+    response = search(token, q="x" * 101)
     assert response.status_code == 422  # rejected input is not echoed back either
     assert "خودکشی" not in caplog.text
+    assert "depression" not in caplog.text
     assert "x" * 101 not in caplog.text + response.content.decode()

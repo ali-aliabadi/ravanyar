@@ -9,7 +9,7 @@ from django.db.models import CharField, F, Func, QuerySet, Value
 from django.db.models.functions import Concat, Replace
 
 from core.errors import NotFoundError
-from core.models import Review, TherapistProfile
+from core.models import Review, Specialty, TherapistProfile
 
 # Keyboards differ: Arabic yeh/kaf and the half-space (ZWNJ) must not decide a match.
 VARIANTS = {"ي": "ی", "ك": "ک", "‌": ""}
@@ -27,15 +27,16 @@ def _approved() -> QuerySet[TherapistProfile]:
     ).order_by(F("reviewed_at").desc(nulls_last=True), "pk")
 
 
-def search(q: str) -> QuerySet[TherapistProfile]:
-    """Approved profiles whose name, title or specialties contain `q`, newest approval first."""
+def search(q: str, specialty: Specialty | None = None) -> QuerySet[TherapistProfile]:
+    """Approved profiles that chose `specialty` and whose name or title contains `q`, newest
+    approval first. Either may be empty."""
     profiles = _approved()
+    if specialty:
+        profiles = profiles.filter(specialties__contains=[specialty])
     q = normalise(q)
     if not q:
         return profiles
-    text: Func = Concat(
-        "display_name", Value(" "), "title", Value(" "), "specialties", output_field=CharField()
-    )
+    text: Func = Concat("display_name", Value(" "), "title", output_field=CharField())
     for old, new in VARIANTS.items():
         text = Replace(text, Value(old), Value(new))
     return profiles.annotate(text=text).filter(text__icontains=q)

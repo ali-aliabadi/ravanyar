@@ -9,7 +9,7 @@ from ninja.pagination import PageNumberPagination, paginate
 from pydantic import Field
 
 from core import search
-from core.models import TherapistProfile
+from core.models import Specialty, TherapistProfile
 
 router = Router()
 
@@ -17,6 +17,7 @@ router = Router()
 class SearchIn(Schema):
     # In the body, never the URL: a query string lands in every access log on the way.
     q: str = Field(default="", max_length=100)
+    specialty: Specialty | None = None
 
 
 class PublicProfileOut(Schema):
@@ -25,7 +26,7 @@ class PublicProfileOut(Schema):
     id: UUID
     display_name: str
     title: str
-    specialties: str
+    specialties: list[Specialty]
     bio: str
     fee_rial: int | None
 
@@ -37,7 +38,7 @@ class PublicProfileOut(Schema):
 @router.post("/therapists/search", response=list[PublicProfileOut])
 @paginate(PageNumberPagination, page_size=20)
 def search_therapists(request: HttpRequest, payload: SearchIn) -> QuerySet[TherapistProfile]:
-    return search.search(payload.q)
+    return search.search(payload.q, payload.specialty)
 
 
 @router.get("/therapists/{therapist_id}", response=PublicProfileOut)
