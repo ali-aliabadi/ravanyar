@@ -11,11 +11,12 @@ from django.db import transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from core import sms
+from core import sms, verification
 from core.access import authorize, read_phone
 from core.crypto import aad, blind_index, encrypt, new_data_key, wrap
 from core.errors import (
     CodeRejectedError,
+    IncompleteError,
     OutdatedVersionError,
     RateLimitedError,
     SmsUnavailableError,
@@ -68,6 +69,8 @@ def request_code(phone: str) -> None:
 def verify_code(phone: str, code: str, role: Role, terms: str, privacy: str) -> str:
     """Check the latest code; on success create the account if new, record consent, return a
     session token. A wrong guess is counted even though the request fails."""
+    if role == Role.ADMIN and phone not in settings.TEST_PHONES:
+        raise IncompleteError  # admins are granted (grant_admin), except staging test numbers
     current = settings.CONSENT_VERSIONS
     if (terms, privacy) != (current[Document.TERMS], current[Document.PRIVACY]):
         raise OutdatedVersionError
@@ -136,6 +139,7 @@ def delete_account(account: Account) -> None:
             wrapped_key=None, phone_ct=None, phone_index=None, is_active=False, deleted_at=now
         )
         AuthSession.objects.filter(account=account, revoked_at=None).update(revoked_at=now)
+        verification.forget(account)
 
 
 def has_current_consent(account: Account) -> bool:

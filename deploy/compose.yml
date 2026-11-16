@@ -33,7 +33,8 @@ services:
     environment:
       POSTGRES_USER: ${DB_OWNER_USER}
       POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD}
-    command: ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput"]
+    # seed_staging adds invented demo data on a pre-launch deployment and does nothing elsewhere.
+    command: ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py seed_staging"]
     depends_on:
       db: {condition: service_healthy}
 

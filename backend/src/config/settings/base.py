@@ -59,3 +59,11 @@ KAVENEGAR_TEMPLATE = os.environ.get("KAVENEGAR_TEMPLATE", "ravanyar-code")
 # Empty everywhere except prod.py, which allows them only on a pre-launch deployment.
 TEST_PHONES: frozenset[str] = frozenset()
 TEST_CODE = ""
+
+# Uploads stay in memory and are encrypted before they are stored: never a plaintext temp
+# file on disk. A file over the limit finds no handler and is refused (SPEC-0003).
+FILE_UPLOAD_HANDLERS = ["django.core.files.uploadhandler.MemoryFileUploadHandler"]
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024 + 64 * 1024
+
+# Set only by prod.py, from RAVANYAR_PRELAUNCH. Staging seed data needs it (SPEC-0003).
+PRELAUNCH = False

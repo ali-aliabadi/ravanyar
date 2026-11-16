@@ -85,6 +85,19 @@ small.muted { display: block; margin-top: 6px; font-size: 0.82rem; }
   color: #fff; font-weight: 900;
 }
 
+/* Tabs under the bar */
+.tabs {
+  display: flex; gap: 4px; overflow-x: auto; padding: 8px 16px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.tab {
+  flex: none; padding: 6px 14px; border-radius: 999px; border: 0; background: none;
+  font: inherit; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.tab:hover { background: var(--bg); }
+.tab.active { background: var(--primary-soft); color: var(--primary); }
+.tab:focus-visible { outline: none; box-shadow: var(--focus); }
+
 main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
 
 /* Cards */
@@ -105,7 +118,8 @@ main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
 form { display: grid; gap: 16px; }
 .field { display: grid; gap: 6px; border: 0; padding: 0; margin: 0; }
 .field > span, .field > legend { font-weight: 600; font-size: 0.9rem; padding: 0; margin-bottom: 6px; }
-input[type="tel"], input[inputmode="numeric"] {
+input[type="tel"], input[inputmode="numeric"], input[type="text"], input[type="number"],
+input[type="date"], input[type="time"], input[type="search"], select, textarea {
   width: 100%;
   padding: 12px 14px;
   font: inherit; font-size: 1.05rem;
@@ -119,8 +133,12 @@ input[type="tel"], input[inputmode="numeric"] {
 input:focus-visible { outline: none; border-color: var(--primary); box-shadow: var(--focus); }
 input.code { letter-spacing: 0.6em; text-align: center; font-weight: 700; font-size: 1.4rem; }
 
+textarea { min-height: 96px; resize: vertical; text-align: right; font-size: 0.95rem; }
+input[type="text"], input[type="search"], select { text-align: right; font-size: 0.95rem; }
+input[type="file"] { font: inherit; font-size: 0.9rem; }
+
 .segmented {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px;
   padding: 4px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border);
 }
 .segmented label { position: relative; }
@@ -194,6 +212,14 @@ input.code { letter-spacing: 0.6em; text-align: center; font-weight: 700; font-s
 }
 .chip.ok { background: var(--success-soft); color: var(--success); }
 .chip.off { background: var(--danger-soft); color: var(--danger); }
+.chip.warn { background: #fff4e0; color: #9a5b00; }
+@media (prefers-color-scheme: dark) { .chip.warn { background: #3a2d14; color: #f2b84b; } }
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.grow { flex: 1; }
+.steps { margin: 0; padding-inline-start: 20px; color: var(--muted); }
+.steps li.done { color: var(--success); }
+.steps li.now { color: var(--text); font-weight: 700; }
 
 .toast {
   max-width: 420px; margin: 0 auto 16px;
