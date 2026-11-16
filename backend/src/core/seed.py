@@ -12,12 +12,14 @@ from django.utils import timezone
 from core.crypto import new_data_key, wrap
 from core.models import Account, Review, Role, TherapistProfile
 
-# Invented people. Fees in rial.
+# Invented people. Fees in rial. The draft one shows that search finds approved profiles only.
+A, D = Review.APPROVED, Review.DRAFT
 THERAPISTS = [
-    ("دکتر سارا نمونه", "روان‌شناس بالینی", "اضطراب، افسردگی، CBT", 12_000_000),
-    ("دکتر امید آزمایشی", "روان‌شناس مشاوره", "زوج‌درمانی، روابط", 10_000_000),
-    ("مریم فرضی", "کارشناس ارشد روان‌شناسی بالینی", "استرس شغلی، ذهن‌آگاهی", 8_000_000),
-    ("دکتر رضا ساختگی", "روان‌پزشک", "اختلال خواب، اضطراب", 15_000_000),
+    ("دکتر سارا نمونه", "روان‌شناس بالینی", "اضطراب، افسردگی، CBT", 12_000_000, A),
+    ("دکتر امید آزمایشی", "روان‌شناس مشاوره", "زوج‌درمانی، روابط", 10_000_000, A),
+    ("مریم فرضی", "کارشناس ارشد روان‌شناسی بالینی", "استرس شغلی، ذهن‌آگاهی", 8_000_000, A),
+    ("دکتر رضا ساختگی", "روان‌پزشک", "اختلال خواب، اضطراب", 15_000_000, A),
+    ("نگار پیش‌نویس", "روان‌شناس کودک", "اضطراب کودک", 9_000_000, D),
 ]
 BIO = "این پروفایل ساختگی و فقط برای نسخهٔ آزمایشی است."
 
@@ -38,7 +40,7 @@ def _account(pk: UUID, role: Role) -> Account:
 
 @transaction.atomic
 def run() -> None:
-    for name, title, specialties, fee in THERAPISTS:
+    for name, title, specialties, fee, status in THERAPISTS:
         account = _account(demo_id(name), Role.THERAPIST)
         TherapistProfile.objects.update_or_create(
             account=account,
@@ -48,7 +50,7 @@ def run() -> None:
                 "bio": BIO,
                 "specialties": specialties,
                 "fee_rial": fee,
-                "status": Review.APPROVED,
-                "reviewed_at": timezone.now(),
+                "status": status,
+                "reviewed_at": timezone.now() if status == A else None,
             },
         )
