@@ -59,3 +59,17 @@ def test_failure_raises_without_echo(
     with pytest.raises(SmsUnavailableError):
         sms.send_code(make_phone(42), "123456")
     assert "123456" not in caplog.text
+
+
+def test_reminder_sends_weekday_and_time_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[urllib.request.Request] = []
+
+    def fake_urlopen(request: urllib.request.Request, **kwargs: Any) -> FakeResponse:
+        seen.append(request)
+        return FakeResponse(200)
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    sms.send_reminder(make_phone(43), "شنبه", "17:00")
+    body = urllib.parse.parse_qs(seen[0].data.decode())  # type: ignore[union-attr]
+    assert (body["token"], body["token2"]) == (["شنبه"], ["17:00"])
+    assert set(body) == {"receptor", "token", "token2", "template"}

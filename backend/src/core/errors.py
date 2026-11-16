@@ -56,3 +56,10 @@ class IncompleteError(ServiceError):
 class BadFileError(ServiceError):
     status = 422
     code = "bad_file"
+
+
+class BadTimeError(ServiceError):
+    """A slot in the past, beyond the booking horizon, or overlapping another (SPEC-0004)."""
+
+    status = 422
+    code = "bad_time"

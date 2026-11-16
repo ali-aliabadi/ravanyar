@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import connection
 from django.http import HttpRequest
 from ninja import Router, Schema, Status
-from pydantic import field_validator
+from pydantic import Field, field_validator
 
 from core import services
 from core.auth import bearer, current
@@ -61,6 +61,16 @@ class MeOut(Schema):
     id: UUID
     role: str
     phone: str
+    name: str  # SPEC-0004: the first name a therapist the client books sees; "" when not set
+
+
+class NameIn(Schema):
+    name: str = Field(max_length=40)
+
+    @field_validator("name")
+    @classmethod
+    def _strip(cls, value: str) -> str:
+        return value.strip()
 
 
 class ConsentIn(Schema):
@@ -113,7 +123,18 @@ def logout(request: HttpRequest) -> Status[None]:
 @router.get("/me", response=MeOut)
 def me(request: HttpRequest) -> MeOut:
     account = current(request).account
-    return MeOut(id=account.pk, role=account.role, phone=services.profile_phone(account))
+    return MeOut(
+        id=account.pk,
+        role=account.role,
+        phone=services.profile_phone(account),
+        name=services.profile_name(account),
+    )
+
+
+@router.put("/me/name", response={204: None})
+def set_name(request: HttpRequest, payload: NameIn) -> Status[None]:
+    services.set_name(current(request).account, payload.name)
+    return Status(204, None)
 
 
 @router.delete("/me", response={204: None}, auth=bearer)

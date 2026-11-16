@@ -49,5 +49,18 @@ services:
     depends_on:
       migrate: {condition: service_completed_successfully}
 
+  # SPEC-0004: session reminders every 10 minutes, as the app role. A staging test number gets
+  # a log line instead of an SMS, as at sign-in.
+  reminders:
+    build: ../backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${DB_APP_USER}
+      POSTGRES_PASSWORD: ${DB_APP_PASSWORD}
+    command: ["sh", "-c", "while true; do python manage.py send_reminders; sleep 600; done"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
 volumes:
   pgdata:

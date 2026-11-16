@@ -2,6 +2,7 @@
 
 from uuid import uuid4
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from core.models.accounts import Account
@@ -23,6 +24,23 @@ class RejectReason(models.TextChoices):
     INCOMPLETE = "incomplete"
 
 
+class Specialty(models.TextChoices):
+    """Fixed list (SPEC-0004): exact search filters. The web client holds the labels."""
+
+    ANXIETY = "anxiety"
+    DEPRESSION = "depression"
+    COUPLES = "couples"
+    FAMILY = "family"
+    CHILD = "child"
+    ADOLESCENT = "adolescent"
+    TRAUMA = "trauma"
+    ADDICTION = "addiction"
+    SLEEP = "sleep"
+    OCD = "ocd"
+    GRIEF = "grief"
+    WORK_STRESS = "work_stress"
+
+
 class TherapistProfile(models.Model):
     """The text fields are the therapist's published profile: public data they write to be
     found, shown to clients only while approved. Deleting the account blanks them."""
@@ -33,7 +51,9 @@ class TherapistProfile(models.Model):
     display_name = models.CharField(max_length=80, blank=True)
     title = models.CharField(max_length=80, blank=True)
     bio = models.TextField(max_length=2000, blank=True)
-    specialties = models.CharField(max_length=200, blank=True)
+    specialties = ArrayField(
+        models.CharField(max_length=32, choices=Specialty.choices), size=5, default=list, blank=True
+    )
     fee_rial = models.PositiveBigIntegerField(null=True)
     status = models.CharField(max_length=16, choices=Review.choices, default=Review.DRAFT)
     submitted_at = models.DateTimeField(null=True)
