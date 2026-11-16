@@ -11,6 +11,7 @@ from core.models.accounts import Account
 class BookingStatus(models.TextChoices):
     BOOKED = "booked"
     CANCELLED = "cancelled"
+    MOVED = "moved"  # the client moved it to another slot; a new booking holds that one
 
 
 class Party(models.TextChoices):
@@ -45,6 +46,7 @@ class Booking(models.Model):
     cancelled_by = models.CharField(max_length=16, choices=Party.choices, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     cancelled_at = models.DateTimeField(null=True)
+    reminded_at = models.DateTimeField(null=True)
 
     class Meta:
         # The double-booking guarantee: Postgres holds it, not a check-then-insert.

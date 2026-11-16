@@ -23,6 +23,12 @@ id: SPEC-0004
 | 17 | Therapist cancel withdraws the slot | `backend/src/core/tests/test_booking_integration.py::test_therapist_cancel_withdraws_slot` |
 | 18 | Roles and ownership | `backend/src/core/tests/test_booking_integration.py::test_roles_and_ownership` |
 | 19 | Deletion cancels future bookings | `backend/src/core/tests/test_booking_integration.py::test_deletion_cancels_future_bookings` |
-| 20 | Therapist never sees the client | `backend/src/core/tests/test_booking_integration.py::test_therapist_never_sees_client` |
-| 21 | No token is 401 | `backend/src/core/tests/test_default_deny_unit.py::test_no_token_is_401_everywhere_but_public` |
-| 22 | Web: search, profile booking, my bookings, specialty checkboxes, week picker | manual on the local stack; the web client has no test runner |
+| 20 | Therapist never sees client id or phone | `backend/src/core/tests/test_booking_integration.py::test_therapist_never_sees_client` |
+| 21 | Client moves a booking; a taken slot changes nothing | `backend/src/core/tests/test_booking_extras_integration.py::test_client_moves_booking` |
+| 22 | Weekly slots skip what does not fit | `backend/src/core/tests/test_booking_extras_integration.py::test_weekly_slots_skip_what_does_not_fit` |
+| 23 | Therapist sees a booked client's first name, logged; ciphertext at rest | `backend/src/core/tests/test_booking_extras_integration.py::test_therapist_sees_first_name_of_booked_client_only` |
+| 24 | Deletion drops the first name | `backend/src/core/tests/test_booking_extras_integration.py::test_deleting_client_drops_name` |
+| 25 | Reminders: SMS for real numbers, log for test numbers, once, logged | `backend/src/core/tests/test_booking_extras_integration.py::test_reminders_like_sign_in_codes` |
+| 26 | Reminder SMS carries a weekday and a time only | `backend/src/core/tests/test_sms_unit.py::test_reminder_sends_weekday_and_time_only` |
+| 27 | No token is 401 | `backend/src/core/tests/test_default_deny_unit.py::test_no_token_is_401_everywhere_but_public` |
+| 28 | Web: search, booking, move, first name, week picker with repeat | manual on the local stack; the web client has no test runner |

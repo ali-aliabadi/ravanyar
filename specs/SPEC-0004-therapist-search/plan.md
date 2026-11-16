@@ -82,6 +82,47 @@ id: SPEC-0004
   - `my_slots(therapist)`: annotated `open`/`booked`/`cancelled`, never with the client.
 - **`forget(account)`:** called from `services.delete_account`; cancels future bookings on
   either side (`system`) and withdraws future slots.
+- **`add_weekly(therapist, start_at, weeks)`:**
+  - Takes the same profile lock as `add_slot`, then tries `start_at + i × 7 days` for each of
+    1-8 weeks. Iran has had no daylight saving since 2022, so a week is 168 hours.
+  - Creates the starts that fit and counts the rest; none fitting is `bad_time`.
+- **`move(client, booking_id, slot_id)`:** one transaction.
+  - Locks the client's own future booking, then the new open slot of the same therapist.
+  - Marks the old booking `moved` (cancelled by the client) and creates the new one.
+  - An `IntegrityError` rolls back both, so the old time stays booked.
+- **`client_names(therapist, slots)`:** for each booked slot, `access.read_name(therapist,
+  client, Purpose.BOOKING)`.
+  - `authorize()` allows it only while that client has an active booking with this
+    therapist, and logs every read.
+  - A client with no name is not read and not logged.
+
+### 4b. Client first name: `models/accounts.py`, `access.py`, `services.py`
+
+- **Model:** `Account.name_ct` (nullable binary), sealed under the account's data key with
+  `aad("core_account", "name", id)`.
+- **Services:**
+  - `services.set_name` writes it; an empty name clears it.
+  - `services.profile_name` reads one's own name under `profile`.
+  - `access.read_name` is the only decrypting path, and it lives in `access.py` because
+    `booking` and `services` both need it.
+- **Deletion:** `delete_account` nulls `name_ct` beside the phone.
+- **Routes:** `PUT /api/me/name` `{name ≤ 40}` → 204, and `GET /api/me` gains `name`.
+
+### 4c. Reminders: `core/reminders.py`, `sms.py`, `send_reminders`
+
+- **`reminders.send_due()`:** finds booked, unreminded sessions starting within 24 hours whose
+  client still has a phone. For each:
+  - It reads the phone through `authorize(client, client, Purpose.REMINDER)`, logged.
+  - A staging test number (`settings.TEST_PHONES`) gets `log.warning("staging test reminder,
+    no SMS booking=<id>")`, as sign-in does (SPEC-0002).
+  - Any other number gets `sms.send_reminder(phone, weekday, "HH:MM")`, with the weekday and
+    time in Tehran time.
+  - It then sets `reminded_at`. A failed SMS is left for the next run.
+- **`sms.py`:** `send_code` and `send_reminder` share `_lookup()`, the one Kavenegar POST. The
+  reminder uses `KAVENEGAR_REMINDER_TEMPLATE` with `token` (weekday) and `token2` (time).
+- **Deploy:** `deploy/compose.yml` gains a `reminders` service, running the API image as the
+  app role, which loops `send_reminders` every 10 minutes. `.env.example` gains the template
+  name.
 
 ### 5. Booking API: `core/api_booking.py`, default `consented` auth
 
@@ -91,8 +132,11 @@ id: SPEC-0004
 | `POST /bookings` `{slot_id}` → 201 | client |
 | `GET /me/bookings` | client |
 | `POST /bookings/{id}/cancel` | client |
-| `GET /therapist/slots` | therapist |
+| `POST /bookings/{id}/move` `{slot_id}` | client |
+| `PUT /me/name` `{name}` → 204 | any signed-in account |
+| `GET /therapist/slots` (with `client_name`) | therapist |
 | `POST /therapist/slots` `{start_at}` → 201 | therapist |
+| `POST /therapist/slots/weekly` `{start_at, weeks}` → 201 `{created, skipped}` | therapist |
 | `DELETE /therapist/slots/{id}` → 204 | therapist |
 | `POST /therapist/slots/{id}/cancel` | therapist |
 
@@ -109,13 +153,18 @@ id: SPEC-0004
 - **`client.js`:**
   - Search with a specialty select.
   - The profile lists free times by day and books after a confirm.
-  - A "نوبت‌های من" tab lists upcoming bookings (with cancel) and past or cancelled ones.
+  - A "نوبت‌های من" tab lists upcoming bookings (with move and cancel) and past, cancelled or
+    moved ones, plus a card for the optional first name and who sees it.
+  - Moving opens the therapist's profile at `#find/<therapist>/move/<booking>`, where picking
+    a time moves the booking.
 - **`therapist.js`:**
   - Specialty checkboxes, capped at five.
   - A "زمان‌های من" tab: a Jalali week picker (seven day buttons, previous and next weeks up
     to the horizon) and a time select from 06:00 to 23:30 in 30-minute steps; then the slots
     by day with remove or cancel. `<input type="date">` is not used because it shows a
     Gregorian picker.
+  - A weekly-repeat select (this day only, 2, 4 or 8 weeks), and a booked client's first name
+    next to the slot when they gave one.
 - **`admin.js`:** specialty labels.
 
 ### 7. Seed
@@ -137,14 +186,23 @@ id: SPEC-0004
 - **A Postgres exclusion constraint for slot overlap:** needs `btree_gist`. Overlap is one
   therapist's own calendar, and a row lock suffices. Double booking crosses clients, so the
   database holds that one.
-- **Recurring availability rules:** a rule engine nobody has asked for.
+- **Stored recurring availability rules:** a rule engine to evaluate at read time. The weekly
+  repeat expands into ordinary slots once, so booking and overlap stay as they are.
+- **Moving as cancel-then-book from the browser:** another client could take the old time in
+  between, and a failed second step loses it.
+- **A name in plaintext, or an unlogged read:** fails the leak test and AGENTS.md §1.5.
+- **A scheduler dependency (Celery, cron in the image):** a shell loop in the compose stack
+  runs one idempotent command.
 - **A calendar library:** a dependency and an ADR, when `fa-IR` already formats in Jalali.
 
 ## Risks
 
-- **No payment, so bookings are free and confirm at once.** One client could hold many
-  slots. Pre-launch data is invented; a per-client cap (see Later) is the guard before real
-  users.
+- **No payment yet, so bookings are free and confirm at once.** One client could hold many
+  slots. Pre-launch data is invented, and payment, which comes later, removes free holds.
+- **Reminders:**
+  - Two `send_reminders` processes at once could send twice; the deploy runs exactly one.
+  - Kavenegar's template text lives outside the repo, so its wording, which must say nothing
+    about therapy, is checked in the panel, not in CI.
 - **The specialty conversion is lossy:** text the map does not recognise is dropped. On
   pre-launch data that text is invented.
 - **Time zones:** the browser sends instants built from a Tehran-time input, and display

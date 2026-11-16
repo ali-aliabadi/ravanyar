@@ -8,7 +8,7 @@ import {
 const PAGE_SIZE = 20; // the API's page size (api_search.py)
 let query = "";
 let specialty = "";
-let justBooked = false;
+let flash = ""; // shown once on the bookings tab after booking or moving
 const when = (iso) => `${faDay(iso)}، ساعت ${faTime(iso)}`;
 
 const facts = (p) => h("dl", { class: "rows" },
@@ -22,38 +22,57 @@ const card = (p) => h("div", { class: "card" },
       "مشاهدهٔ پروفایل")),
   facts(p));
 
-async function bookSlot(button, p, slot) {
-  if (!await confirmAction("رزرو جلسه", `جلسه با ${p.display_name}، ${when(slot.start_at)}؟`, "رزرو")) return;
+// `moving`: the id of the client's booking being moved to one of these times, or "".
+async function pickSlot(button, p, slot, moving) {
+  const [title, verb] = moving ? ["جابه‌جایی جلسه", "جابه‌جایی"] : ["رزرو جلسه", "رزرو"];
+  if (!await confirmAction(title, `جلسه با ${p.display_name}، ${when(slot.start_at)}؟`, verb)) return;
   busy(button, async () => {
-    await api("POST", "/bookings", { slot_id: slot.id });
-    justBooked = true;
+    await api("POST", moving ? `/bookings/${moving}/move` : "/bookings", { slot_id: slot.id });
+    flash = moving ? "جلسه جابه‌جا شد." : "جلسه رزرو شد.";
     location.hash = "bookings";
   });
 }
 
-async function renderProfile(view, id) {
+async function renderProfile(view, id, moving) {
   const path = `/therapists/${encodeURIComponent(id)}`;
   const [p, slots] = await Promise.all([api("GET", path), api("GET", `${path}/slots`)]);
   const days = [...byDay(slots)].map(([, list]) => h("div", { class: "stack" },
     h("h3", {}, faDay(list[0].start_at)),
     h("div", { class: "row" }, list.map((s) => h("button", {
-      class: "btn ghost small", onclick: (e) => bookSlot(e.currentTarget, p, s),
+      class: "btn ghost small", onclick: (e) => pickSlot(e.currentTarget, p, s, moving),
     }, faTime(s.start_at))))));
   view.replaceChildren(
     h("div", { class: "row" },
       h("button", { class: "btn ghost small", onclick: () => { location.hash = "find"; } }, "بازگشت به نتایج")),
     h("div", { class: "card" }, h("h1", {}, p.display_name), facts(p), p.bio && h("p", {}, p.bio)),
-    h("div", { class: "card" }, h("h2", {}, "زمان‌های آزاد"),
+    h("div", { class: "card" }, h("h2", {}, moving ? "زمان جدید جلسه را انتخاب کنید" : "زمان‌های آزاد"),
       h("p", { class: "muted" }, "ساعت‌ها به وقت تهران است. هر جلسه ۵۰ دقیقه است."),
       ...(days.length ? days : [h("p", { class: "muted" }, "فعلاً زمان آزادی اعلام نشده است.")])),
   );
 }
 
-const STATUS = { booked: ["رزرو شده", "ok"], cancelled: ["لغو شده", "off"] };
+const STATUS = { booked: ["رزرو شده", "ok"], cancelled: ["لغو شده", "off"], moved: ["جابه‌جا شده", ""] };
 const BY = { client: "توسط شما", therapist: "توسط درمانگر", system: "" };
 
+// SPEC-0004: an optional first name, shown only to a therapist the client is booked with.
+function nameCard(me) {
+  const input = h("input", { type: "text", name: "name", maxlength: 40, value: me.name, class: "grow",
+    "aria-label": "نام کوچک" });
+  const form = h("form", { class: "row" }, input, h("button", { class: "btn ghost", type: "submit" }, "ذخیره"));
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    busy(e.submitter, async () => {
+      await api("PUT", "/me/name", { name: input.value.trim() });
+      toast("ذخیره شد.", true);
+    });
+  });
+  return h("div", { class: "card" }, h("h2", {}, "نامی که درمانگر می‌بیند"),
+    h("p", { class: "muted" }, "اختیاری. فقط درمانگری که با او جلسه دارید آن را می‌بیند و هر بار دیدنش ثبت می‌شود."),
+    form);
+}
+
 async function renderBookings(view, ctx) {
-  const all = await api("GET", "/me/bookings"); // latest first
+  const [all, me] = await Promise.all([api("GET", "/me/bookings"), api("GET", "/me")]); // latest first
   const now = Date.now();
   const upcoming = all.filter((b) => b.status === "booked" && new Date(b.start_at) > now).reverse();
   const rest = all.filter((b) => !upcoming.includes(b));
@@ -67,19 +86,25 @@ async function renderBookings(view, ctx) {
   view.replaceChildren(
     h("div", { class: "hero" }, h("h1", {}, "نوبت‌های من")),
     h("div", { class: "card" }, h("h2", {}, "جلسه‌های پیش رو"),
-      upcoming.length ? h("ul", { class: "docs" }, upcoming.map((b) => item(b, cancel(b))))
+      upcoming.length ? h("ul", { class: "docs" }, upcoming.map((b) => item(b,
+        h("div", { class: "row" },
+          h("button", { class: "btn ghost small", onclick: () => { location.hash = `find/${b.therapist_id}/move/${b.id}`; } },
+            "جابه‌جایی"),
+          cancel(b)))))
         : h("div", { class: "stack" }, h("p", { class: "muted" }, "جلسهٔ رزرو شده‌ای ندارید."),
           h("button", { class: "btn primary", onclick: () => { location.hash = "find"; } }, "یافتن درمانگر"))),
     ...(rest.length ? [h("div", { class: "card" }, h("h2", {}, "گذشته و لغو شده"),
       h("ul", { class: "docs" }, rest.map((b) => item(b,
-        chip(`${STATUS[b.status][0]} ${BY[b.cancelled_by] || ""}`.trim(), STATUS[b.status][1])))))] : []),
+        chip(`${STATUS[b.status][0]} ${b.status === "cancelled" ? BY[b.cancelled_by] || "" : ""}`.trim(),
+          STATUS[b.status][1])))))] : []),
+    nameCard(me),
   );
-  if (justBooked) { justBooked = false; toast("جلسه رزرو شد.", true); }
+  if (flash) { toast(flash, true); flash = ""; }
 }
 
 async function renderSearch(view) {
-  const id = location.hash.split("/")[1];
-  if (id) return renderProfile(view, id);
+  const [, id, mode, moving] = location.hash.split("/"); // #find/<therapist>[/move/<booking>]
+  if (id) return renderProfile(view, id, mode === "move" ? moving : "");
 
   let page = 1;
   const results = h("div", { class: "stack" });

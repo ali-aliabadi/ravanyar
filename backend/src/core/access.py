@@ -10,7 +10,7 @@ from uuid import UUID
 
 from core.crypto import aad, decrypt, encrypt, unwrap
 from core.errors import AccessDeniedError
-from core.models import AccessLog, Account, Decision, Purpose, Role
+from core.models import AccessLog, Account, Booking, BookingStatus, Decision, Purpose, Role
 
 
 @dataclass(frozen=True)
@@ -25,6 +25,13 @@ def _allowed(actor: Account, subject: Account, purpose: Purpose) -> bool:
         return True
     if purpose == Purpose.CREDENTIALS:  # SPEC-0003: an admin reviews a therapist's documents
         return actor.role == Role.ADMIN and subject.role == Role.THERAPIST
+    if purpose == Purpose.BOOKING:  # SPEC-0004: only while the client is booked with them
+        return (
+            actor.role == Role.THERAPIST
+            and Booking.objects.filter(
+                client=subject, slot__therapist=actor, status=BookingStatus.BOOKED
+            ).exists()
+        )
     return False
 
 
@@ -59,3 +66,15 @@ def unseal(grant: Grant, owner: Account, location: bytes, blob: bytes) -> bytes:
     if grant.subject_id != owner.pk or owner.wrapped_key is None:
         raise AccessDeniedError
     return decrypt(unwrap(owner.pk, bytes(owner.wrapped_key)), location, blob)
+
+
+def name_location(account: Account) -> bytes:
+    return aad("core_account", "name", account.pk)
+
+
+def read_name(actor: Account, account: Account, purpose: Purpose) -> str:
+    """SPEC-0004: a client's optional first name. Not set reads as "" and logs nothing."""
+    if account.name_ct is None:
+        return ""
+    grant = authorize(actor, account, purpose)
+    return unseal(grant, account, name_location(account), bytes(account.name_ct)).decode()

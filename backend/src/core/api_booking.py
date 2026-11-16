@@ -6,7 +6,7 @@ from uuid import UUID
 
 from django.http import HttpRequest
 from ninja import Router, Schema, Status
-from pydantic import AwareDatetime
+from pydantic import AwareDatetime, Field
 
 from core import booking
 from core.auth import current
@@ -25,9 +25,20 @@ class SlotIn(Schema):
 
 
 class TherapistSlotOut(SlotOut):
-    """The therapist's own slot. Booked or not, never by whom."""
+    """The therapist's own slot: never the client's id or phone, only the first name a booked
+    client chose to show, read through the access log."""
 
     state: Literal["open", "booked", "cancelled"]
+    client_name: str = ""
+
+
+class WeeklyIn(SlotIn):
+    weeks: int = Field(ge=1, le=booking.MAX_WEEKS)
+
+
+class WeeklyOut(Schema):
+    created: list[TherapistSlotOut]
+    skipped: int  # weeks that overlapped another slot or passed the 60-day horizon
 
 
 class BookIn(Schema):
@@ -54,8 +65,11 @@ def _booking_out(b: Booking) -> BookingOut:
     )
 
 
-def _slot_out(slot: Slot) -> TherapistSlotOut:
-    return TherapistSlotOut(id=slot.pk, start_at=slot.start_at, state=slot.state)  # type: ignore[attr-defined]  # annotated in my_slots
+def _slot_out(slot: Slot, names: dict[UUID, str]) -> TherapistSlotOut:
+    state = slot.state  # type: ignore[attr-defined]  # annotated in my_slots
+    return TherapistSlotOut(
+        id=slot.pk, start_at=slot.start_at, state=state, client_name=names.get(slot.pk, "")
+    )
 
 
 @router.get("/therapists/{therapist_id}/slots", response=list[SlotOut])
@@ -66,6 +80,11 @@ def open_slots(request: HttpRequest, therapist_id: UUID) -> list[SlotOut]:
 @router.post("/bookings", response={201: BookingOut})
 def book(request: HttpRequest, payload: BookIn) -> Status[BookingOut]:
     return Status(201, _booking_out(booking.book(current(request).account, payload.slot_id)))
+
+
+@router.post("/bookings/{booking_id}/move", response=BookingOut)
+def move_booking(request: HttpRequest, booking_id: UUID, payload: BookIn) -> BookingOut:
+    return _booking_out(booking.move(current(request).account, booking_id, payload.slot_id))
 
 
 @router.get("/me/bookings", response=list[BookingOut])
@@ -80,13 +99,23 @@ def cancel_booking(request: HttpRequest, booking_id: UUID) -> BookingOut:
 
 @router.get("/therapist/slots", response=list[TherapistSlotOut])
 def my_slots(request: HttpRequest) -> list[TherapistSlotOut]:
-    return [_slot_out(s) for s in booking.my_slots(current(request).account)]
+    therapist = current(request).account
+    slots = list(booking.my_slots(therapist))
+    names = booking.client_names(therapist, slots)
+    return [_slot_out(s, names) for s in slots]
 
 
 @router.post("/therapist/slots", response={201: TherapistSlotOut})
 def add_slot(request: HttpRequest, payload: SlotIn) -> Status[TherapistSlotOut]:
     slot = booking.add_slot(current(request).account, payload.start_at)
     return Status(201, TherapistSlotOut(id=slot.pk, start_at=slot.start_at, state="open"))
+
+
+@router.post("/therapist/slots/weekly", response={201: WeeklyOut})
+def add_weekly(request: HttpRequest, payload: WeeklyIn) -> Status[WeeklyOut]:
+    made, skipped = booking.add_weekly(current(request).account, payload.start_at, payload.weeks)
+    created = [TherapistSlotOut(id=s.pk, start_at=s.start_at, state="open") for s in made]
+    return Status(201, WeeklyOut(created=created, skipped=skipped))
 
 
 @router.delete("/therapist/slots/{slot_id}", response={204: None})
@@ -97,4 +126,4 @@ def remove_slot(request: HttpRequest, slot_id: UUID) -> Status[None]:
 
 @router.post("/therapist/slots/{slot_id}/cancel", response=TherapistSlotOut)
 def cancel_session(request: HttpRequest, slot_id: UUID) -> TherapistSlotOut:
-    return _slot_out(booking.cancel_as_therapist(current(request).account, slot_id))
+    return _slot_out(booking.cancel_as_therapist(current(request).account, slot_id), {})

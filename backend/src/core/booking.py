@@ -11,12 +11,14 @@ from django.db.models import Case, CharField, Exists, OuterRef, Q, QuerySet, Val
 from django.utils import timezone
 
 from core import search
+from core.access import read_name
 from core.errors import BadTimeError, NotFoundError, WrongStateError
 from core.models import (
     Account,
     Booking,
     BookingStatus,
     Party,
+    Purpose,
     Review,
     Role,
     Slot,
@@ -27,6 +29,8 @@ from core.verification import require_role
 SESSION = timedelta(minutes=50)
 LEAD = timedelta(hours=1)  # a client books at least this far ahead
 HORIZON = timedelta(days=60)  # a therapist publishes at most this far ahead
+MAX_WEEKS = 8
+WEEK = timedelta(days=7)  # Iran has had no daylight saving since 2022: a week is 168 hours
 
 
 def _active_booking() -> Exists:
@@ -42,25 +46,47 @@ def _bookable() -> QuerySet[Slot]:
     ).exclude(_active_booking())
 
 
-@transaction.atomic
-def add_slot(therapist: Account, start_at: datetime) -> Slot:
+def _lock_approved(therapist: Account) -> None:
+    """The profile row lock serialises one therapist's concurrent adds, so overlap checks hold."""
     require_role(therapist, Role.THERAPIST)
-    # The row lock serialises one therapist's concurrent adds, so the overlap check holds.
     profile = TherapistProfile.objects.select_for_update().filter(account=therapist).first()
     if profile is None or profile.status != Review.APPROVED:
         raise WrongStateError
+
+
+def _fits(therapist: Account, start_at: datetime) -> bool:
     now = timezone.now()
-    if not now < start_at <= now + HORIZON:
-        raise BadTimeError
     near = Slot.objects.filter(
         therapist=therapist,
         withdrawn_at=None,
         start_at__gt=start_at - SESSION,
         start_at__lt=start_at + SESSION,
     )
-    if near.exists():
+    return now < start_at <= now + HORIZON and not near.exists()
+
+
+@transaction.atomic
+def add_slot(therapist: Account, start_at: datetime) -> Slot:
+    _lock_approved(therapist)
+    if not _fits(therapist, start_at):
         raise BadTimeError
     return Slot.objects.create(therapist=therapist, start_at=start_at)
+
+
+@transaction.atomic
+def add_weekly(therapist: Account, start_at: datetime, weeks: int) -> tuple[list[Slot], int]:
+    """The same time on each of `weeks` weeks. A week that overlaps or passes the horizon is
+    skipped and counted; nothing fitting at all is a bad time."""
+    _lock_approved(therapist)
+    if not 1 <= weeks <= MAX_WEEKS:
+        raise BadTimeError
+    made = []
+    for start in (start_at + i * WEEK for i in range(weeks)):
+        if _fits(therapist, start):
+            made.append(Slot.objects.create(therapist=therapist, start_at=start))
+    if not made:
+        raise BadTimeError
+    return made, weeks - len(made)
 
 
 @transaction.atomic
@@ -94,6 +120,37 @@ def book(client: Account, slot_id: UUID) -> Booking:
                 raise WrongStateError if Slot.objects.filter(pk=slot_id).exists() else NotFoundError
             return Booking.objects.create(slot=slot, client=client)
     except IntegrityError:  # another client's booking committed first
+        raise WrongStateError from None
+
+
+def move(client: Account, booking_id: UUID, slot_id: UUID) -> Booking:
+    """Book the new slot and release the old one, or neither: the old time is never lost."""
+    require_role(client, Role.CLIENT)
+    try:
+        with transaction.atomic():
+            old = (
+                Booking.objects.select_for_update(of=("self",))
+                .select_related("slot")
+                .filter(pk=booking_id, client=client)
+                .first()
+            )
+            if old is None:
+                raise NotFoundError
+            if old.status != BookingStatus.BOOKED or old.slot.start_at <= timezone.now():
+                raise WrongStateError
+            slot = (
+                _bookable()
+                .select_for_update(of=("self",))
+                .filter(pk=slot_id, therapist_id=old.slot.therapist_id)
+                .first()
+            )
+            if slot is None:
+                raise WrongStateError
+            old.status, old.cancelled_by = BookingStatus.MOVED, Party.CLIENT
+            old.cancelled_at = timezone.now()
+            old.save(update_fields=["status", "cancelled_by", "cancelled_at"])
+            return Booking.objects.create(slot=slot, client=client)
+    except IntegrityError:  # another client took the new slot first
         raise WrongStateError from None
 
 
@@ -168,6 +225,16 @@ def my_slots(therapist: Account) -> QuerySet[Slot]:
         )
         .order_by("start_at")
     )
+
+
+def client_names(therapist: Account, slots: list[Slot]) -> dict[UUID, str]:
+    """First names of the clients booked into these slots, each read access-logged. A client
+    who gave no name is not read and not logged."""
+    booked = Booking.objects.filter(
+        slot__in=[s.pk for s in slots], slot__therapist=therapist, status=BookingStatus.BOOKED
+    ).select_related("client")
+    names = {b.slot_id: read_name(therapist, b.client, Purpose.BOOKING) for b in booked}
+    return {slot_id: name for slot_id, name in names.items() if name}
 
 
 def forget(account: Account) -> None:

@@ -23,6 +23,8 @@ class Account(AbstractBaseUser):
     # NULL rather than "" so any number of deleted accounts fit under the unique constraint.
     phone_index = models.CharField(max_length=64, unique=True, null=True)  # noqa: DJ001
     wrapped_key = models.BinaryField(null=True)
+    # SPEC-0004: an optional first name a client shows the therapist they book; data key.
+    name_ct = models.BinaryField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     deleted_at = models.DateTimeField(null=True)
 
@@ -74,6 +76,8 @@ class Purpose(models.TextChoices):
     PROFILE = "profile"
     CONSENTS = "consents"
     CREDENTIALS = "credentials"
+    BOOKING = "booking"  # SPEC-0004: a therapist reads the first name of a client booked with them
+    REMINDER = "reminder"  # SPEC-0004: the phone is read to send a session reminder
 
 
 class Decision(models.TextChoices):

@@ -133,6 +133,8 @@ const SLOT_STATE = { open: ["آزاد", ""], booked: ["رزرو شده", "ok"], 
 let week = 0;
 let pickedDay = "";
 let pickedTime = "17:00";
+let pickedWeeks = 1;
+const WEEKS = { 1: "فقط همین روز", 2: "۲ هفته", 4: "۴ هفته", 8: "۸ هفته" };
 
 function slotItem(s, ctx) {
   const [label, kind] = SLOT_STATE[s.state];
@@ -142,7 +144,8 @@ function slotItem(s, ctx) {
     busy(btn, async () => { await api(method, path); await ctx.rerender(); toast(done, true); });
   } }, yes);
   return h("li", {},
-    h("div", { class: "meta" }, h("span", {}, faTime(s.start_at)), chip(label, kind)),
+    h("div", { class: "meta" }, h("span", {}, faTime(s.start_at)), chip(label, kind),
+      s.client_name && h("small", {}, s.client_name)),
     s.state === "open" && act("حذف زمان", "این زمان از فهرست زمان‌های آزاد حذف شود؟", "حذف",
       "DELETE", `/therapist/slots/${s.id}`, "حذف شد."),
     s.state === "booked" && act("لغو جلسه", "این جلسه رزرو شده است. لغو شود؟ این زمان دوباره پیشنهاد نمی‌شود.",
@@ -174,12 +177,20 @@ async function renderSlots(view, ctx) {
     }, faDay(tehranIso(d, "12:00"))))));
   const time = h("select", { "aria-label": "ساعت" },
     HOURS.map((t) => h("option", { value: t, selected: t === pickedTime }, fa(t))));
-  const add = h("div", { class: "row" }, time, h("button", { class: "btn primary", type: "button",
+  const repeat = h("select", { "aria-label": "تکرار هفتگی" },
+    Object.entries(WEEKS).map(([n, t]) => h("option", { value: n, selected: Number(n) === pickedWeeks }, t)));
+  const add = h("div", { class: "row" }, time, repeat, h("button", { class: "btn primary", type: "button",
     onclick: (e) => busy(e.currentTarget, async () => {
-      pickedTime = time.value;
-      await api("POST", "/therapist/slots", { start_at: tehranIso(pickedDay, pickedTime) });
+      [pickedTime, pickedWeeks] = [time.value, Number(repeat.value)];
+      const start_at = tehranIso(pickedDay, pickedTime);
+      let done = "زمان اضافه شد.";
+      if (pickedWeeks === 1) await api("POST", "/therapist/slots", { start_at });
+      else {
+        const r = await api("POST", "/therapist/slots/weekly", { start_at, weeks: pickedWeeks });
+        done = `${fa(r.created.length)} زمان اضافه شد.` + (r.skipped ? ` ${fa(r.skipped)} هفته با زمان دیگری هم‌پوشانی داشت یا بیش از ۶۰ روز بعد بود.` : "");
+      }
       await ctx.rerender();
-      toast("زمان اضافه شد.", true);
+      toast(done, true);
     }) }, "افزودن زمان"));
   const list = [...byDay(slots)].map(([, items]) => h("div", { class: "stack" },
     h("h3", {}, faDay(items[0].start_at)), h("ul", { class: "docs" }, items.map((s) => slotItem(s, ctx)))));
