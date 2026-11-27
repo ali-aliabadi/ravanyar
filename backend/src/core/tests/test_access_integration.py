@@ -17,7 +17,7 @@ def test_self_read_allowed_and_logged(sign_in: Callable[..., str]) -> None:
     response = Client().get("/api/me", **bearer(sign_in(phone)))
     assert response.status_code == 200
     account = Account.objects.get()
-    assert response.json() == {"id": str(account.pk), "role": "client", "phone": phone}
+    assert response.json() == {"id": str(account.pk), "role": "client", "phone": phone, "name": ""}
     log = AccessLog.objects.get()
     assert (log.actor_id, log.subject_id, log.purpose, log.decision) == (
         account.pk,

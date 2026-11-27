@@ -5,6 +5,32 @@ export const $ = (id) => document.getElementById(id);
 export const fa = (s) => String(s).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]);
 export const toman = (rial) => `${fa(Math.round(rial / 10).toLocaleString("en-US"))} تومان`;
 export const faDate = (iso) => new Date(iso).toLocaleDateString("fa-IR");
+// SPEC-0004: session times are Tehran time wherever the browser is. fa-IR formats in the
+// Jalali calendar, so no calendar library is needed (ADR 0006).
+const TZ = "Asia/Tehran";
+export const faDay = (iso) => new Date(iso).toLocaleDateString("fa-IR", {
+  timeZone: TZ, weekday: "long", day: "numeric", month: "long",
+});
+export const faTime = (iso) => new Date(iso).toLocaleTimeString("fa-IR", {
+  timeZone: TZ, hour: "2-digit", minute: "2-digit",
+});
+// "2026-11-21": the Tehran calendar day an instant falls on, for grouping and the week picker.
+export const tehranDay = (iso) => new Date(iso).toLocaleDateString("en-CA", { timeZone: TZ });
+// The instant of `day` ("YYYY-MM-DD") at `hhmm` in Tehran, with the offset Intl reports for it.
+export function tehranIso(day, hhmm) {
+  const noon = new Date(`${day}T12:00:00Z`);
+  const name = new Intl.DateTimeFormat("en-US", { timeZone: TZ, timeZoneName: "longOffset" })
+    .formatToParts(noon).find((p) => p.type === "timeZoneName").value; // "GMT+03:30"
+  return `${day}T${hhmm}:00${name.replace("GMT", "") || "Z"}`;
+}
+
+// Items with `start_at`, grouped by Tehran day in their existing order: Map(day -> items).
+export function byDay(items) {
+  const days = new Map();
+  for (const x of items) days.set(tehranDay(x.start_at), [...(days.get(tehranDay(x.start_at)) || []), x]);
+  return days;
+}
+
 export const faDateTime = (iso) => new Date(iso).toLocaleString("fa-IR", {
   weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
 });
@@ -61,6 +87,7 @@ const ERRORS = {
   wrong_state: "در وضعیت فعلی این کار ممکن نیست.",
   incomplete: "اطلاعات کامل نیست.",
   bad_file: "فایل باید PDF، JPG یا PNG و حداکثر ۵ مگابایت باشد.",
+  bad_time: "این زمان ممکن نیست: گذشته است، بیش از ۶۰ روز بعد است یا با زمان دیگری هم‌پوشانی دارد.",
 };
 
 export function message(err) {
@@ -124,3 +151,12 @@ export const field = (label, input, hint) =>
   h("label", { class: "field" }, h("span", {}, label), input, hint && h("small", { class: "muted" }, hint));
 
 export const chip = (text, kind = "") => h("span", { class: `chip ${kind}` }, text);
+
+// SPEC-0004: the fixed list; the backend stores the codes.
+export const SPECIALTIES = {
+  anxiety: "اضطراب", depression: "افسردگی", couples: "زوج‌درمانی", family: "خانواده‌درمانی",
+  child: "کودک", adolescent: "نوجوان", trauma: "تروما", addiction: "اعتیاد",
+  sleep: "اختلال خواب", ocd: "وسواس", grief: "سوگ", work_stress: "استرس شغلی",
+};
+export const MAX_SPECIALTIES = 5;
+export const specialtyNames = (codes) => codes.map((c) => SPECIALTIES[c] || c).join("، ");

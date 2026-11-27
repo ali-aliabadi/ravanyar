@@ -6,11 +6,11 @@ from uuid import UUID
 from django.http import HttpRequest, HttpResponse
 from ninja import File, Form, Router, Schema, Status
 from ninja.files import UploadedFile
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from core import verification
 from core.auth import current
-from core.models import CredentialKind, RejectReason, Review, TherapistProfile
+from core.models import CredentialKind, RejectReason, Review, Specialty, TherapistProfile
 
 router = Router()
 
@@ -19,8 +19,13 @@ class ProfileIn(Schema):
     display_name: str = Field(max_length=80)
     title: str = Field(max_length=80)
     bio: str = Field(max_length=2000)
-    specialties: str = Field(max_length=200)
+    specialties: list[Specialty] = Field(max_length=5)  # SPEC-0004: a fixed list, up to five
     fee_rial: int | None = Field(default=None, ge=10_000, le=1_000_000_000)
+
+    @field_validator("specialties")
+    @classmethod
+    def _unique(cls, value: list[Specialty]) -> list[Specialty]:
+        return list(dict.fromkeys(value))
 
 
 class CredentialOut(Schema):
@@ -51,7 +56,7 @@ def _out(profile: TherapistProfile) -> ProfileOut:
         display_name=profile.display_name,
         title=profile.title,
         bio=profile.bio,
-        specialties=profile.specialties,
+        specialties=[Specialty(s) for s in profile.specialties],
         fee_rial=profile.fee_rial,
         status=Review(profile.status),
         reject_reason=profile.reject_reason,

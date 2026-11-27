@@ -4,6 +4,7 @@ import {
   $, api, busy, confirmAction, fa, h, message, setSignedOutHandler, store, toast,
 } from "./lib.js";
 import { tabs as adminTabs } from "./admin.js";
+import { tabs as clientTabs } from "./client.js";
 import { tabs as therapistTabs } from "./therapist.js";
 
 // shortcut: mirrors CONSENT_VERSIONS in backend settings; bump both together, or expose them
@@ -28,7 +29,7 @@ const DOCS = {
 
 const ROLES = { client: "مراجع", therapist: "درمانگر", admin: "مدیر" };
 const ACCOUNT = { id: "account", label: "حساب" };
-const TABS = { client: [], therapist: therapistTabs, admin: adminTabs };
+const TABS = { client: clientTabs, therapist: therapistTabs, admin: adminTabs };
 
 let phone = "";
 let me = null;

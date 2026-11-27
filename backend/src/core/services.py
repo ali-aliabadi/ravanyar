@@ -11,8 +11,8 @@ from django.db import transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from core import sms, verification
-from core.access import authorize, read_phone
+from core import booking, sms, verification
+from core.access import authorize, name_location, read_name, read_phone, seal
 from core.crypto import aad, blind_index, encrypt, new_data_key, wrap
 from core.errors import (
     CodeRejectedError,
@@ -129,6 +129,16 @@ def profile_phone(account: Account) -> str:
     return read_phone(authorize(account, account, Purpose.PROFILE), account)
 
 
+def profile_name(account: Account) -> str:
+    return read_name(account, account, Purpose.PROFILE)
+
+
+def set_name(account: Account, name: str) -> None:
+    """SPEC-0004: the first name a client shows the therapist they book. Empty clears it."""
+    account.name_ct = seal(account, name_location(account), name.encode()) if name else None
+    account.save(update_fields=["name_ct"])
+
+
 def delete_account(account: Account) -> None:
     """Crypto-shred: without the wrapped key every ciphertext of this person is noise."""
     now = timezone.now()
@@ -136,10 +146,16 @@ def delete_account(account: Account) -> None:
         if account.phone_index:
             SignInCode.objects.filter(phone_index=account.phone_index).delete()
         Account.objects.filter(pk=account.pk).update(
-            wrapped_key=None, phone_ct=None, phone_index=None, is_active=False, deleted_at=now
+            wrapped_key=None,
+            phone_ct=None,
+            name_ct=None,
+            phone_index=None,
+            is_active=False,
+            deleted_at=now,
         )
         AuthSession.objects.filter(account=account, revoked_at=None).update(revoked_at=now)
         verification.forget(account)
+        booking.forget(account)
 
 
 def has_current_consent(account: Account) -> bool:
